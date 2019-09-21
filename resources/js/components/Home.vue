@@ -17,8 +17,8 @@
           </h2>
           <br>
           <div class="buttons is-centered">
-            <span class="button is-rounded is-medium">Log In</span>
-            <span class="button is-success is-rounded is-medium">Sign Up</span>
+            <router-link to="/login"><span class="button is-rounded is-medium">Log In</span></router-link>
+            <router-link to="/register"><span class="button is-success is-rounded is-medium">Sign Up</span></router-link>
           </div>
         </div>
         </div>

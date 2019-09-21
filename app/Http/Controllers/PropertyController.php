@@ -21,7 +21,7 @@ class PropertyController extends Controller
         $property->description = $request->description;
         $property->filename = $folder;
         $property->location_id = $request->location_id;
-        $path = storage_path('app/').($folder).('/');
+        $path = public_path('app/').($folder).('/');
         Storage::makeDirectory($folder);
         if(isset($request->cover)){
             $covername = Str::random(4).time().'.' . explode('/', explode(':', substr($request->cover, 0, strpos($request->cover, ';')))[1])[1];
@@ -36,6 +36,22 @@ class PropertyController extends Controller
             }   
         }
     return response()->json(['status' => 'success'], 200);
+    }
+
+    public function index()
+    {
+        $properties = Property::all();
+        $data = (array)[];
+        foreach ($properties as $prop) {
+        $pr = (object)[
+            "title" => $prop->title,
+            "price" => $prop->price,
+            "cover" => ('images/').($prop->filename).'/'.($prop->cover)
+        ];
+        $data[]= $pr;
+        };
+        $data = json_encode($data);
+        return response($data, Response::HTTP_OK);
     }
 
 }

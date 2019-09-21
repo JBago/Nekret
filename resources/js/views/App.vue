@@ -10,6 +10,9 @@
           <router-link to="/about" class="navbar-item nav-item-custom">
             <span class="is-family-primary">About</span>
           </router-link>
+           <router-link to="/browse" class="navbar-item nav-item-custom">
+            <span class="is-family-primary">Browse</span>
+          </router-link>
         </div>
         <div class="navbar-end">
           <div class="navbar-item">

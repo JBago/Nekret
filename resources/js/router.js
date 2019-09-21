@@ -7,6 +7,7 @@ import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import AdminDashboard from './components/Admin'
 import CreateProp from './components/CreateProp'
+import Browse from './components/Browse'
 
 // Routes
 const routes = [
@@ -49,6 +50,14 @@ const routes = [
     component: CreateProp,
     meta: {
       auth: true
+    }
+  },
+  {
+    path: '/browse',
+    name: 'browse',
+    component: Browse,
+    meta: {
+      auth: undefined
     }
   },
   // ADMIN ROUTES
