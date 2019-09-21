@@ -7,8 +7,8 @@
           <router-link to="/"  class="navbar-item nav-item-custom">
             <span class="is-family-primary">HOME</span>
           </router-link>
-          <router-link to="/about" class="navbar-item nav-item-custom">
-            <span class="is-family-primary">About</span>
+          <router-link  v-if="$auth.check()" to="/create" class="navbar-item nav-item-custom">
+            <span class="is-family-primary">Add Property</span>
           </router-link>
            <router-link to="/browse" class="navbar-item nav-item-custom">
             <span class="is-family-primary">Browse</span>
@@ -17,11 +17,11 @@
         <div class="navbar-end">
           <div class="navbar-item">
             <div class="buttons">
-              <router-link to="/login">
+              <router-link v-if="!$auth.check()" to="/login">
               <a  class="button is-light">
                 Log in
               </a>
-              <router-link to="/register">
+              <router-link v-if="!$auth.check()"  to="/register">
                 <a class="button is-info">
                   <strong>Sign up</strong>
                 </a>

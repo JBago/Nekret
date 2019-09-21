@@ -1,21 +1,36 @@
 <template>
     <div class="card" id="itemCard">
         <router-link :to="'/View/'+item.id"><div  style="z-index: 10;" class="is-overlay"></div></router-link>
-        <div>
-            <div id="cardName" class="card-content has-text-centered">
-                <div  class="card-image" >
-                    <figure class="image">
-                        <img :src="item.cover">
-                    </figure>
+          <div class="card-content" style="padding: 1rem">
+            <nav class="level is-mobile">
+              <!-- Left side -->
+              <div class="level-left">
+                <div class="level-item">
+                  <div  class="card-image is-128x128" >
+                        <img :src="item.cover || 'images/no-image.jpg'" height="128" width="128" style="object-fit: scale-down; height: 100%; margin:0">
+                  </div>
                 </div>
-                <span>
-                  {{item.title}}</span><br>
-                 <span>
-                  {{item.price}} 
-                </span>
+              </div>
+              <div class="level level-item">
+                <div class="level-item">
+                  <h1 class="title is-6">
+                    Name:
+                    {{item.title}}
+                    <br><br>
+                    Location:
+                    Sarajevo
+                  </h1>
+                </div>
+                <div class="level-item"></div>
+                <div class="level-item">
+                  <h1 class="title is-5">
+                    {{item.price}} 
+                  </h1>
+                </div>
+              </div>
+            </nav>
             </div>
           </div>
-        </div>
 </template>
 
 <script>
