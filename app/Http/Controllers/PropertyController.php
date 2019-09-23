@@ -60,6 +60,7 @@ class PropertyController extends Controller
             $cover=null;
         }
         $pr = (object)[
+            "id" => $prop->id,
             "title" => $prop->title,
             "price" => $prop->price,
             "cover" => $cover
@@ -69,5 +70,11 @@ class PropertyController extends Controller
         $data = json_encode($data);
         return response($data, Response::HTTP_OK);
     }
-
+    
+    public function show(Request $request, $id)
+    {
+        $prop = Property::find($id);
+        $username = $prop->user->username;
+        return response($prop, Response::HTTP_OK);
+    }
 }

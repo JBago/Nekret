@@ -66,9 +66,6 @@ export default {
       console.log(data);
     });
     },
-    loginOpen() {
-      this.loginVisible=1
-    },
     logout() {
         this.$auth.logout({
           url: '/api/auth/logout',

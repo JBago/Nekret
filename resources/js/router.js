@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard'
 import AdminDashboard from './components/Admin'
 import CreateProp from './components/CreateProp'
 import Browse from './components/Browse'
+import View from './components/View'
 
 // Routes
 const routes = [
@@ -56,6 +57,14 @@ const routes = [
     path: '/browse',
     name: 'browse',
     component: Browse,
+    meta: {
+      auth: undefined
+    }
+  },
+  {
+    path: '/view/:id',
+    name: 'view',
+    component: View,
     meta: {
       auth: undefined
     }
