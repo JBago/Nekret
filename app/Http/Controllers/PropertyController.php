@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Log;
 use Intervention\Image\Facades\Image;
 use App\Property;
 use App\Photo;
+use App\Reservation;
+use App\Location;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -21,11 +23,18 @@ class PropertyController extends Controller
         $property->price = $request->price;
         $property->description = $request->description;
         $property->filename = $folder;
-        $property->location_id = $request->location_id;
+        if(!Location::where('name', $request->location)->first()){
+            $location = new Location();
+            $location->name=$request->location;
+            $location->save();
+        }
+        $location = Location::where('name', $request->location)->first();
+        $property->location_id = $location->id;
         $path = public_path('images/').($folder).('/');
         File::makeDirectory(public_path('images/').($folder));
         if(isset($request->cover)){
-            $covername = Str::random(4).time().'.' . explode('/', explode(':', substr($request->cover, 0, strpos($request->cover, ';')))[1])[1];
+            $covername = Str::random(4).time().'.' .
+            explode('/', explode(':', substr($request->cover, 0, strpos($request->cover, ';')))[1])[1];
             Image::make($request->cover)->save($path.$covername);
             $property->cover = $covername;
             $cover = new Photo();
@@ -63,18 +72,23 @@ class PropertyController extends Controller
             "id" => $prop->id,
             "title" => $prop->title,
             "price" => $prop->price,
-            "cover" => $cover
+            "cover" => $cover,
+            "location" => $prop->location->name
         ];
         $data[]= $pr;
         };
         $data = json_encode($data);
         return response($data, Response::HTTP_OK);
     }
-    
+
     public function show(Request $request, $id)
     {
         $prop = Property::find($id);
+        $images = Photo::where('folder', $prop->filename)
+               ->get();
+        $reservations = Reservation::where('property_id', $id)
+               ->get();
         $username = $prop->user->username;
-        return response($prop, Response::HTTP_OK);
+        return response([$prop, $images, $reservations], Response::HTTP_OK);
     }
 }

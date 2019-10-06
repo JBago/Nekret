@@ -1,7 +1,7 @@
 <template>
     <div class="section">
       <div class="container">
-        <div class="notification is-danger" v-if="error && !success">
+        <div class="notification is-danger" v-if="has_error && !success">
           <p>There was an error, unable to create property.</p>
         </div>
         <div class="notification is-success" v-if="success">
@@ -47,7 +47,12 @@
                   <input type="text" id="price" class="input"  v-model.number="price" required>
                 </div>
                 <div class="control"><a class="button is-info is-static">€</a></div>
-                
+            </div>
+            <div class="field">
+                <label for="name">Location:</label>
+                <div class="control">
+                  <input type="text" id="location" class="input" v-model="location" required>
+                </div>
             </div>
             <div class="field">
                 <label for="description">Description:</label>
@@ -92,7 +97,7 @@
                 </span>
               </label>
             </div>
-            <img :src="item.img" style="display:flex;" />
+            <img :src="item.img" style="display:flex; object-fit: cover; max-height: 100%" />
         </grid-item>
     </grid-layout>
           </div>
@@ -118,6 +123,7 @@
       return {
         name: '',
         price: '',
+        location: '',
         description: '',
         has_error: false,
         error: '',
@@ -129,7 +135,6 @@
         ],
         w: 1,
         h: 1,
-        refresh:0
       }
     },
     computed: {
@@ -156,8 +161,7 @@
             user_id: app.$auth.user().id,
             price: app.price+'€',
             description: app.description,
-            location_id: 2,
-            filename: app.filename,
+            location: app.location,
             cover: app.cover,
             photos: photosArray
           }) .then(function (response) {
@@ -166,8 +170,6 @@
              .catch(function (error) {
             console.log(error.response.data.errors);
             app.has_error = true;
-            app.error = error.response.data.error;
-            app.errors = error.response.data.errors || {};
           })
       },
        uploadImage(i){
@@ -187,7 +189,8 @@
                 reader.readAsDataURL(file);
                 reader.onload = event =>{
                 that.layout[num+j].img= event.target.result;
-                  that.layout.push({"x":Math.floor((((num+j+1)/4)%1)*4),"y":Math.floor((num+j+1)/4),"w":1,"h":1,"i": (num+j+1).toFixed(0), "img": null});
+                that.layout.push({"x":Math.floor((((num+j+1)/4)%1)*4),"y":Math.floor((num+j+1)/4),"w":1,"h":1,"i": (num+j+1).toFixed(0), "img": null});
+                resolve;
                 } 
               });
         },
@@ -198,7 +201,6 @@
           reader.readAsDataURL(image);
           reader.onload = event =>{
             that.cover = event.target.result;
-            that.refresh++;
           } 
         }
       }

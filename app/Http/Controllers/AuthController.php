@@ -42,6 +42,7 @@ class AuthController extends Controller
             'msg' => 'Logged out Successfully.'
         ], 200);
     }
+    
     public function user(Request $request)
     {
         $user = User::find(Auth::user()->id);

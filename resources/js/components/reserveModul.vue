@@ -7,23 +7,16 @@
                     <p class="modal-card-title">Make a reservation</p>
                     <button @click="reserveClose" class="delete" aria-label="close"></button>
                 </header>
-                <form id="reserve_form" method="POST" @submit.prevent="reserve" aria-label="reserve" class="modal-card-body">
-                    <div class="field">
-                      <label class="label">E-Mail</label>
-                      <div class="control">
-                        <input name='email' v-model="email" class="input" type="text">
-                      </div>
+                <div class="modal-card-body">
+                    <div class="level">
+                        <div class="level-item">
+                            <datepicker :inline="true" :disabledDates="unavailable" v-model="highlighted"></datepicker>
+                        </div>
                     </div>
-                    <div class="field">
-                      <label class="label">Password</label>
-                      <div class="control">
-                        <input name="password" v-model="password" class="input" type="password">
-                      </div>
-                    </div>
-                </form>
+                </div>
                 <footer class="modal-card-foot">
-                    <button @click="onSubmit" class="button is-success">reserve</button>
-                    <button class="button">Cancel</button>
+                    <button @click="onSubmit" class="button is-success">Reserve</button>
+                    <button @click="reserveClose" class="button">Cancel</button>
                 </footer>
             </div>
     </div>
@@ -31,8 +24,12 @@
 </template>
 
 <script>
+import Datepicker from 'vuejs-datepicker';
 export default {
     name: 'reservation',
+    components: {
+        Datepicker
+    },
     watch: {
         'visible': function (newVal, OldVal) {
             if(newVal===1)  document.getElementById('reserve').classList.add('is-active');
@@ -41,24 +38,33 @@ export default {
     },
     data: function () {
         return {
-            email: '',
-            password: '',
+            highlighted: null,
         }
     },
     props: {
-        visible: Number
+        visible: Number,
+        selectedObject: Object,
+        unavailable: Object
     },
     computed: {},
     methods: {
         reserveClose() {
             this.visible=0;
             this.$emit('closeReserve');
+            console.log(this.unavailable);
         },
         onSubmit() {
-            document.getElementById('reserve_form').submit();
-        },
-        reserve() {
-      }
+            console.log(this.highlighted);
+            this.axios.post('/api/reservation/create',
+            {
+            date: this.highlighted,
+            property_id: this.selectedObject.id,
+            }) .then(function (response) {
+            })
+             .catch(function (error) {
+            console.log(error.response.data.errors);
+            })
+        }
     }
 }
 </script>

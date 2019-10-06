@@ -1,17 +1,12 @@
 <template>
-    <div class="container">
-        <div class="card card-default">
-            <div class="card-header">Admin Dashboard</div>
-
-            <div class="card-body">
-                Bienvenue sur votre dashboard administrateur
+    <div class="container position">
+        <div class="card">
+            <div class="card-header">
+              <p class="card-header-title">
+                Admin Dashboard
+              </p>
             </div>
-
-        </div>
-        <div class="card card-default">
-            <div class="card-header">Liste des utilisateurs</div>
-
-            <div class="card-body">
+            <div class="card-content">
                 <userList></userList>
             </div>
         </div>
@@ -29,3 +24,9 @@
     }
   }
 </script>
+
+<style >
+.position{
+  margin: 30px auto;
+}
+</style>

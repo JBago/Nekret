@@ -4,46 +4,68 @@
     <div class="container box">
       <div class="columns">
         <div class="column">
-          <figure class="image">
             <img :src="'/images/' + selectedObject.filename + '/' + selectedObject.cover">
-          </figure>
         </div>
         <div class="column">
           <span class="is-size-4 has-text-weight-medium is-family-primary">
                   {{selectedObject.title}}
-          </span><br><br><br>
+          </span><br>
           <div class="has-text-left">
-            <span class="is-size-5 is-family-primary">
+            <span class="is-size-6 is-family-primary">
                   <br><br>
                   Owner:  {{selectedObject.user.username}}
                   <br>
                   Phone number: {{selectedObject.user.phone_number || 'N/A'}}
                   <br>
-                  Description: {{selectedObject.description}}
+                  Description:
+                  <br> 
+                  {{selectedObject.description}}
+                  <br>
                   <br>
             </span>
           </div> 
-            <nav class="level is-mobile">
-              <div class="level-item has-text-centered">
                 <div>
-                   <div @click="openReserve" class="button is-primary">Reserve</div>
+                   <div @click="openReserve" class="button is-medium is-primary">Reserve</div>
                 </div>
-              </div>
-              <div class="level-item has-text-centered">
-              </div>
-              <div class="level-item has-text-centered">
-              </div>
-              <div class="level-item has-text-centered">
-                <div>
-                  <p class="is-size-6 is-family-primary has-text-weight-bold">FAVORITE</p>
-                </div>
-              </div>
-            </nav>        
         </div>
-      </div>
+        </div>
+                <span>Pictures:</span>
+          <div class="box">
+                    <grid-layout
+            :layout.sync="pictures"
+            :col-num="4"
+            :row-height="150"
+            :is-mirrored="false"
+            :is-draggable="false"
+            :is-resizable="false"
+            :vertical-compact="true"
+            :margin="[10, 10]"
+            :use-css-transforms="true" 
+    >
+
+        <grid-item v-for="item in pictures"
+                   :x="item.x"
+                   :y="item.y"
+                   :w="item.w"
+                   :h="item.h"
+                   :i="item.i"
+                   :key="item.i">
+            <img @click="openPicture(item)" :src="item.img" style="display:flex;" />
+        </grid-item>
+    </grid-layout>
+          </div>
     </div>
   </section>
-  <reserveModul @closeReserve="closeReservation" v-if="$auth.check()" :visible="openReservation"></reserveModul>
+  <reserveModul @closeReserve="closeReservation" v-if="$auth.check()" :unavailable="unavailableDates" :selectedObject="selectedObject" :visible="openReservation"></reserveModul>
+      <div id="pictureModal" class="modal">
+        <div @click="closePicture" class="modal-background"></div>
+          <div class="modal-content">
+            <p class="image is-4by3">
+              <img :src="selectedPicture" alt="">
+            </p>
+          </div>
+          <button  @click="closePicture" class="modal-close is-large" aria-label="close"></button>
+      </div>
 </div>
 </template>
 
@@ -56,7 +78,10 @@ export default {
   data: function(){
     return {
         selectedObject: {},
-        openReservation: 0
+        pictures: [],
+        openReservation: 0,
+        selectedPicture: '',
+        unavailableDates: {dates: []}
     }
   },
   watch: {	},
@@ -66,9 +91,15 @@ export default {
   methods: {
           fetchData(){
           this.axios.get('/api/property/' + this.$route.params.id).then((response) => {
-              this.selectedObject= response.data;
-              console.log(response);
-              console.log(this.selectedObject);
+              this.selectedObject= response.data[0];
+              for(var i=0;i<response.data[1].length;i++){
+                this.pictures.push({"x":Math.floor((((i)/4)%1)*4),"y":Math.floor((i)/4),"w":1,"h":1,"i": (i).toFixed(0), "img": '/images/' + response.data[1][i].folder + '/' + response.data[1][i].name})
+              };
+              for(var i=0;i<response.data[2].length;i++){
+              this.unavailableDates.dates.push(new Date(response.data[2][i].date));
+              }
+              console.log(this.unavailableDates);
+              console.log(response.data)
             })
           },
           openReserve(){
@@ -81,6 +112,13 @@ export default {
           },
           closeReservation(){
             this.openReservation=0;
+          },
+          openPicture(item){
+            this.selectedPicture= item.img;
+            document.getElementById('pictureModal').classList.add('is-active');
+          },
+          closePicture(){
+            document.getElementById('pictureModal').classList.remove('is-active');
           }
   }
 }

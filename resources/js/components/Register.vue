@@ -52,7 +52,6 @@
         name: '',
         email: '',
         password: '',
-        password_confirmation: '',
         has_error: false,
         error: '',
         errors: {},

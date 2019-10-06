@@ -3118,11 +3118,6 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-//
-//
-//
-//
-//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   mounted: function mounted() {//
@@ -3303,6 +3298,11 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   components: {
@@ -3313,6 +3313,7 @@ __webpack_require__.r(__webpack_exports__);
     return {
       name: '',
       price: '',
+      location: '',
       description: '',
       has_error: false,
       error: '',
@@ -3328,8 +3329,7 @@ __webpack_require__.r(__webpack_exports__);
         "img": null
       }],
       w: 1,
-      h: 1,
-      refresh: 0
+      h: 1
     };
   },
   computed: {
@@ -3357,8 +3357,7 @@ __webpack_require__.r(__webpack_exports__);
         user_id: app.$auth.user().id,
         price: app.price + '€',
         description: app.description,
-        location_id: 2,
-        filename: app.filename,
+        location: app.location,
         cover: app.cover,
         photos: photosArray
       }).then(function (response) {
@@ -3366,8 +3365,6 @@ __webpack_require__.r(__webpack_exports__);
       })["catch"](function (error) {
         console.log(error.response.data.errors);
         app.has_error = true;
-        app.error = error.response.data.error;
-        app.errors = error.response.data.errors || {};
       });
     },
     uploadImage: function uploadImage(i) {
@@ -3411,6 +3408,7 @@ __webpack_require__.r(__webpack_exports__);
             "i": (num + j + 1).toFixed(0),
             "img": null
           });
+          resolve;
         };
       });
     },
@@ -3422,7 +3420,6 @@ __webpack_require__.r(__webpack_exports__);
 
       reader.onload = function (event) {
         that.cover = event.target.result;
-        that.refresh++;
       };
     }
   }
@@ -3633,7 +3630,7 @@ __webpack_require__.r(__webpack_exports__);
         },
         success: function success() {
           // handle redirection
-          var redirectTo = redirect ? redirect.from.name : this.$auth.user().role === 2 ? 'admin' : 'dashboard';
+          var redirectTo = redirect ? redirect.from.name : this.$auth.user().role === 2 ? 'admin' : 'home';
           console.log(this.$auth.user().role);
           this.$router.push({
             name: redirectTo
@@ -3713,7 +3710,6 @@ __webpack_require__.r(__webpack_exports__);
       name: '',
       email: '',
       password: '',
-      password_confirmation: '',
       has_error: false,
       error: '',
       errors: {},
@@ -3816,6 +3812,28 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: 'View',
@@ -3825,7 +3843,12 @@ __webpack_require__.r(__webpack_exports__);
   data: function data() {
     return {
       selectedObject: {},
-      openReservation: 0
+      pictures: [],
+      openReservation: 0,
+      selectedPicture: '',
+      unavailableDates: {
+        dates: []
+      }
     };
   },
   watch: {},
@@ -3837,9 +3860,27 @@ __webpack_require__.r(__webpack_exports__);
       var _this = this;
 
       this.axios.get('/api/property/' + this.$route.params.id).then(function (response) {
-        _this.selectedObject = response.data;
-        console.log(response);
-        console.log(_this.selectedObject);
+        _this.selectedObject = response.data[0];
+
+        for (var i = 0; i < response.data[1].length; i++) {
+          _this.pictures.push({
+            "x": Math.floor(i / 4 % 1 * 4),
+            "y": Math.floor(i / 4),
+            "w": 1,
+            "h": 1,
+            "i": i.toFixed(0),
+            "img": '/images/' + response.data[1][i].folder + '/' + response.data[1][i].name
+          });
+        }
+
+        ;
+
+        for (var i = 0; i < response.data[2].length; i++) {
+          _this.unavailableDates.dates.push(new Date(response.data[2][i].date));
+        }
+
+        console.log(_this.unavailableDates);
+        console.log(response.data);
       });
     },
     openReserve: function openReserve() {
@@ -3851,6 +3892,13 @@ __webpack_require__.r(__webpack_exports__);
     },
     closeReservation: function closeReservation() {
       this.openReservation = 0;
+    },
+    openPicture: function openPicture(item) {
+      this.selectedPicture = item.img;
+      document.getElementById('pictureModal').classList.add('is-active');
+    },
+    closePicture: function closePicture() {
+      document.getElementById('pictureModal').classList.remove('is-active');
     }
   }
 });
@@ -3925,6 +3973,7 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony import */ var vuejs_datepicker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vuejs-datepicker */ "./node_modules/vuejs-datepicker/dist/vuejs-datepicker.esm.js");
 //
 //
 //
@@ -3950,15 +3999,12 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-//
-//
-//
-//
-//
-//
-//
+
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: 'reservation',
+  components: {
+    Datepicker: vuejs_datepicker__WEBPACK_IMPORTED_MODULE_0__["default"]
+  },
   watch: {
     'visible': function visible(newVal, OldVal) {
       if (newVal === 1) document.getElementById('reserve').classList.add('is-active');else if (newVal === 0) document.getElementById('reserve').classList.remove('is-active');
@@ -3966,23 +4012,30 @@ __webpack_require__.r(__webpack_exports__);
   },
   data: function data() {
     return {
-      email: '',
-      password: ''
+      highlighted: null
     };
   },
   props: {
-    visible: Number
+    visible: Number,
+    selectedObject: Object,
+    unavailable: Object
   },
   computed: {},
   methods: {
     reserveClose: function reserveClose() {
       this.visible = 0;
       this.$emit('closeReserve');
+      console.log(this.unavailable);
     },
     onSubmit: function onSubmit() {
-      document.getElementById('reserve_form').submit();
-    },
-    reserve: function reserve() {}
+      console.log(this.highlighted);
+      this.axios.post('/api/reservation/create', {
+        date: this.highlighted,
+        property_id: this.selectedObject.id
+      }).then(function (response) {})["catch"](function (error) {
+        console.log(error.response.data.errors);
+      });
+    }
   }
 });
 
@@ -3997,6 +4050,9 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+//
+//
+//
 //
 //
 //
@@ -4038,7 +4094,7 @@ __webpack_require__.r(__webpack_exports__);
       var _this = this;
 
       this.$http({
-        url: "users",
+        url: "api/users",
         method: 'GET'
       }).then(function (res) {
         _this.users = res.data.users;
@@ -4218,6 +4274,25 @@ exports.push([module.i, "@import url(https://fonts.googleapis.com/css?family=Nun
 
 // module
 exports.push([module.i, "@-webkit-keyframes spinAround {\n  from {\n    transform: rotate(0deg); }\n  to {\n    transform: rotate(359deg); } }\n@keyframes spinAround {\n  from {\n    transform: rotate(0deg); }\n  to {\n    transform: rotate(359deg); } }\n\n.is-unselectable, .button, .file {\n  -webkit-touch-callout: none;\n  -webkit-user-select: none;\n  -moz-user-select: none;\n  -ms-user-select: none;\n  user-select: none; }\n\n.select:not(.is-multiple):not(.is-loading)::after, .navbar-link:not(.is-arrowless)::after {\n  border: 3px solid transparent;\n  border-radius: 2px;\n  border-right: 0;\n  border-top: 0;\n  content: \" \";\n  display: block;\n  height: 0.625em;\n  margin-top: -0.4375em;\n  pointer-events: none;\n  position: absolute;\n  top: 50%;\n  transform: rotate(-45deg);\n  transform-origin: center;\n  width: 0.625em; }\n\n.title:not(:last-child),\n.subtitle:not(:last-child) {\n  margin-bottom: 1.5rem; }\n\n.button.is-loading::after, .select.is-loading::after, .control.is-loading::after {\n  -webkit-animation: spinAround 500ms infinite linear;\n          animation: spinAround 500ms infinite linear;\n  border: 2px solid #dbdbdb;\n  border-radius: 290486px;\n  border-right-color: transparent;\n  border-top-color: transparent;\n  content: \"\";\n  display: block;\n  height: 1em;\n  position: relative;\n  width: 1em; }\n\n.is-overlay, .hero-video {\n  bottom: 0;\n  left: 0;\n  position: absolute;\n  right: 0;\n  top: 0; }\n\n.button, .input, .textarea, .select select, .file-cta,\n.file-name {\n  -moz-appearance: none;\n  -webkit-appearance: none;\n  align-items: center;\n  border: 1px solid transparent;\n  border-radius: 4px;\n  box-shadow: none;\n  display: inline-flex;\n  font-size: 1rem;\n  height: 2.25em;\n  justify-content: flex-start;\n  line-height: 1.5;\n  padding-bottom: calc(0.375em - 1px);\n  padding-left: calc(0.625em - 1px);\n  padding-right: calc(0.625em - 1px);\n  padding-top: calc(0.375em - 1px);\n  position: relative;\n  vertical-align: top; }\n  .button:focus, .input:focus, .textarea:focus, .select select:focus, .file-cta:focus,\n  .file-name:focus, .is-focused.button, .is-focused.input, .is-focused.textarea, .select select.is-focused, .is-focused.file-cta,\n  .is-focused.file-name, .button:active, .input:active, .textarea:active, .select select:active, .file-cta:active,\n  .file-name:active, .is-active.button, .is-active.input, .is-active.textarea, .select select.is-active, .is-active.file-cta,\n  .is-active.file-name {\n    outline: none; }\n  .button[disabled], .input[disabled], .textarea[disabled], .select select[disabled], .file-cta[disabled],\n  .file-name[disabled],\n  fieldset[disabled] .button,\n  fieldset[disabled] .input,\n  fieldset[disabled] .textarea,\n  fieldset[disabled] .select select,\n  .select fieldset[disabled] select,\n  fieldset[disabled] .file-cta,\n  fieldset[disabled] .file-name {\n    cursor: not-allowed; }\n\n/*! minireset.css v0.0.4 | MIT License | github.com/jgthms/minireset.css */\nhtml,\nbody,\np,\nol,\nul,\nli,\ndl,\ndt,\ndd,\nblockquote,\nfigure,\nfieldset,\nlegend,\ntextarea,\npre,\niframe,\nhr,\nh1,\nh2,\nh3,\nh4,\nh5,\nh6 {\n  margin: 0;\n  padding: 0; }\n\nh1,\nh2,\nh3,\nh4,\nh5,\nh6 {\n  font-size: 100%;\n  font-weight: normal; }\n\nul {\n  list-style: none; }\n\nbutton,\ninput,\nselect,\ntextarea {\n  margin: 0; }\n\nhtml {\n  box-sizing: border-box; }\n\n*, *::before, *::after {\n  box-sizing: inherit; }\n\nimg,\nembed,\niframe,\nobject,\nvideo {\n  height: auto;\n  max-width: 100%; }\n\naudio {\n  max-width: 100%; }\n\niframe {\n  border: 0; }\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0; }\n\ntd,\nth {\n  padding: 0; }\n  td:not([align]),\n  th:not([align]) {\n    text-align: left; }\n\nhtml {\n  background-color: #E8EAE8;\n  font-size: 16px;\n  -moz-osx-font-smoothing: grayscale;\n  -webkit-font-smoothing: antialiased;\n  min-width: 300px;\n  overflow-x: hidden;\n  overflow-y: scroll;\n  text-rendering: optimizeLegibility;\n  -webkit-text-size-adjust: 100%;\n     -moz-text-size-adjust: 100%;\n      -ms-text-size-adjust: 100%;\n          text-size-adjust: 100%; }\n\narticle,\naside,\nfigure,\nfooter,\nheader,\nhgroup,\nsection {\n  display: block; }\n\nbody,\nbutton,\ninput,\nselect,\ntextarea {\n  font-family: \"Nunito\", sans-serif; }\n\ncode,\npre {\n  -moz-osx-font-smoothing: auto;\n  -webkit-font-smoothing: auto;\n  font-family: monospace; }\n\nbody {\n  color: #4a4a4a;\n  font-size: 1em;\n  font-weight: 400;\n  line-height: 1.5; }\n\na {\n  color: #2831c5;\n  cursor: pointer;\n  text-decoration: none; }\n  a strong {\n    color: currentColor; }\n  a:hover {\n    color: #363636; }\n\ncode {\n  background-color: whitesmoke;\n  color: #d42535;\n  font-size: 0.875em;\n  font-weight: normal;\n  padding: 0.25em 0.5em 0.25em; }\n\nhr {\n  background-color: whitesmoke;\n  border: none;\n  display: block;\n  height: 2px;\n  margin: 1.5rem 0; }\n\nimg {\n  height: auto;\n  max-width: 100%; }\n\ninput[type=\"checkbox\"],\ninput[type=\"radio\"] {\n  vertical-align: baseline; }\n\nsmall {\n  font-size: 0.875em; }\n\nspan {\n  font-style: inherit;\n  font-weight: inherit; }\n\nstrong {\n  color: #363636;\n  font-weight: 700; }\n\nfieldset {\n  border: none; }\n\npre {\n  -webkit-overflow-scrolling: touch;\n  background-color: whitesmoke;\n  color: #4a4a4a;\n  font-size: 0.875em;\n  overflow-x: auto;\n  padding: 1.25rem 1.5rem;\n  white-space: pre;\n  word-wrap: normal; }\n  pre code {\n    background-color: transparent;\n    color: currentColor;\n    font-size: 1em;\n    padding: 0; }\n\ntable td,\ntable th {\n  vertical-align: top; }\n  table td:not([align]),\n  table th:not([align]) {\n    text-align: left; }\n\ntable th {\n  color: #363636; }\n\n.is-clearfix::after {\n  clear: both;\n  content: \" \";\n  display: table; }\n\n.is-pulled-left {\n  float: left !important; }\n\n.is-pulled-right {\n  float: right !important; }\n\n.is-clipped {\n  overflow: hidden !important; }\n\n.is-size-1 {\n  font-size: 3rem !important; }\n\n.is-size-2 {\n  font-size: 2.5rem !important; }\n\n.is-size-3 {\n  font-size: 2rem !important; }\n\n.is-size-4 {\n  font-size: 1.5rem !important; }\n\n.is-size-5 {\n  font-size: 1.25rem !important; }\n\n.is-size-6 {\n  font-size: 1rem !important; }\n\n.is-size-7 {\n  font-size: 0.75rem !important; }\n\n@media screen and (max-width: 768px) {\n  .is-size-1-mobile {\n    font-size: 3rem !important; }\n  .is-size-2-mobile {\n    font-size: 2.5rem !important; }\n  .is-size-3-mobile {\n    font-size: 2rem !important; }\n  .is-size-4-mobile {\n    font-size: 1.5rem !important; }\n  .is-size-5-mobile {\n    font-size: 1.25rem !important; }\n  .is-size-6-mobile {\n    font-size: 1rem !important; }\n  .is-size-7-mobile {\n    font-size: 0.75rem !important; } }\n\n@media screen and (min-width: 769px), print {\n  .is-size-1-tablet {\n    font-size: 3rem !important; }\n  .is-size-2-tablet {\n    font-size: 2.5rem !important; }\n  .is-size-3-tablet {\n    font-size: 2rem !important; }\n  .is-size-4-tablet {\n    font-size: 1.5rem !important; }\n  .is-size-5-tablet {\n    font-size: 1.25rem !important; }\n  .is-size-6-tablet {\n    font-size: 1rem !important; }\n  .is-size-7-tablet {\n    font-size: 0.75rem !important; } }\n\n@media screen and (max-width: 1023px) {\n  .is-size-1-touch {\n    font-size: 3rem !important; }\n  .is-size-2-touch {\n    font-size: 2.5rem !important; }\n  .is-size-3-touch {\n    font-size: 2rem !important; }\n  .is-size-4-touch {\n    font-size: 1.5rem !important; }\n  .is-size-5-touch {\n    font-size: 1.25rem !important; }\n  .is-size-6-touch {\n    font-size: 1rem !important; }\n  .is-size-7-touch {\n    font-size: 0.75rem !important; } }\n\n@media screen and (min-width: 1024px) {\n  .is-size-1-desktop {\n    font-size: 3rem !important; }\n  .is-size-2-desktop {\n    font-size: 2.5rem !important; }\n  .is-size-3-desktop {\n    font-size: 2rem !important; }\n  .is-size-4-desktop {\n    font-size: 1.5rem !important; }\n  .is-size-5-desktop {\n    font-size: 1.25rem !important; }\n  .is-size-6-desktop {\n    font-size: 1rem !important; }\n  .is-size-7-desktop {\n    font-size: 0.75rem !important; } }\n\n.has-text-centered {\n  text-align: center !important; }\n\n.has-text-justified {\n  text-align: justify !important; }\n\n.has-text-left {\n  text-align: left !important; }\n\n.has-text-right {\n  text-align: right !important; }\n\n@media screen and (max-width: 768px) {\n  .has-text-centered-mobile {\n    text-align: center !important; } }\n\n@media screen and (min-width: 769px), print {\n  .has-text-centered-tablet {\n    text-align: center !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .has-text-centered-tablet-only {\n    text-align: center !important; } }\n\n@media screen and (max-width: 1023px) {\n  .has-text-centered-touch {\n    text-align: center !important; } }\n\n@media screen and (min-width: 1024px) {\n  .has-text-centered-desktop {\n    text-align: center !important; } }\n\n@media screen and (max-width: 768px) {\n  .has-text-justified-mobile {\n    text-align: justify !important; } }\n\n@media screen and (min-width: 769px), print {\n  .has-text-justified-tablet {\n    text-align: justify !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .has-text-justified-tablet-only {\n    text-align: justify !important; } }\n\n@media screen and (max-width: 1023px) {\n  .has-text-justified-touch {\n    text-align: justify !important; } }\n\n@media screen and (min-width: 1024px) {\n  .has-text-justified-desktop {\n    text-align: justify !important; } }\n\n@media screen and (max-width: 768px) {\n  .has-text-left-mobile {\n    text-align: left !important; } }\n\n@media screen and (min-width: 769px), print {\n  .has-text-left-tablet {\n    text-align: left !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .has-text-left-tablet-only {\n    text-align: left !important; } }\n\n@media screen and (max-width: 1023px) {\n  .has-text-left-touch {\n    text-align: left !important; } }\n\n@media screen and (min-width: 1024px) {\n  .has-text-left-desktop {\n    text-align: left !important; } }\n\n@media screen and (max-width: 768px) {\n  .has-text-right-mobile {\n    text-align: right !important; } }\n\n@media screen and (min-width: 769px), print {\n  .has-text-right-tablet {\n    text-align: right !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .has-text-right-tablet-only {\n    text-align: right !important; } }\n\n@media screen and (max-width: 1023px) {\n  .has-text-right-touch {\n    text-align: right !important; } }\n\n@media screen and (min-width: 1024px) {\n  .has-text-right-desktop {\n    text-align: right !important; } }\n\n.is-capitalized {\n  text-transform: capitalize !important; }\n\n.is-lowercase {\n  text-transform: lowercase !important; }\n\n.is-uppercase {\n  text-transform: uppercase !important; }\n\n.is-italic {\n  font-style: italic !important; }\n\n.has-text-white {\n  color: white !important; }\n\na.has-text-white:hover, a.has-text-white:focus {\n  color: #e6e6e6 !important; }\n\n.has-background-white {\n  background-color: white !important; }\n\n.has-text-black {\n  color: #0a0a0a !important; }\n\na.has-text-black:hover, a.has-text-black:focus {\n  color: black !important; }\n\n.has-background-black {\n  background-color: #0a0a0a !important; }\n\n.has-text-light {\n  color: whitesmoke !important; }\n\na.has-text-light:hover, a.has-text-light:focus {\n  color: #dbdbdb !important; }\n\n.has-background-light {\n  background-color: whitesmoke !important; }\n\n.has-text-dark {\n  color: #363636 !important; }\n\na.has-text-dark:hover, a.has-text-dark:focus {\n  color: #1c1c1c !important; }\n\n.has-background-dark {\n  background-color: #363636 !important; }\n\n.has-text-primary {\n  color: #44a3d4 !important; }\n\na.has-text-primary:hover, a.has-text-primary:focus {\n  color: #2b89ba !important; }\n\n.has-background-primary {\n  background-color: #44a3d4 !important; }\n\n.has-text-link {\n  color: #2831c5 !important; }\n\na.has-text-link:hover, a.has-text-link:focus {\n  color: #1f269b !important; }\n\n.has-background-link {\n  background-color: #2831c5 !important; }\n\n.has-text-info {\n  color: #209cee !important; }\n\na.has-text-info:hover, a.has-text-info:focus {\n  color: #0f81cc !important; }\n\n.has-background-info {\n  background-color: #209cee !important; }\n\n.has-text-success {\n  color: #15a632 !important; }\n\na.has-text-success:hover, a.has-text-success:focus {\n  color: #0f7924 !important; }\n\n.has-background-success {\n  background-color: #15a632 !important; }\n\n.has-text-warning {\n  color: #e0b905 !important; }\n\na.has-text-warning:hover, a.has-text-warning:focus {\n  color: #ae9004 !important; }\n\n.has-background-warning {\n  background-color: #e0b905 !important; }\n\n.has-text-danger {\n  color: #d42535 !important; }\n\na.has-text-danger:hover, a.has-text-danger:focus {\n  color: #a91d2a !important; }\n\n.has-background-danger {\n  background-color: #d42535 !important; }\n\n.has-text-black-bis {\n  color: #121212 !important; }\n\n.has-background-black-bis {\n  background-color: #121212 !important; }\n\n.has-text-black-ter {\n  color: #242424 !important; }\n\n.has-background-black-ter {\n  background-color: #242424 !important; }\n\n.has-text-grey-darker {\n  color: #363636 !important; }\n\n.has-background-grey-darker {\n  background-color: #363636 !important; }\n\n.has-text-grey-dark {\n  color: #4a4a4a !important; }\n\n.has-background-grey-dark {\n  background-color: #4a4a4a !important; }\n\n.has-text-grey {\n  color: #7a7a7a !important; }\n\n.has-background-grey {\n  background-color: #7a7a7a !important; }\n\n.has-text-grey-light {\n  color: #b5b5b5 !important; }\n\n.has-background-grey-light {\n  background-color: #b5b5b5 !important; }\n\n.has-text-grey-lighter {\n  color: #dbdbdb !important; }\n\n.has-background-grey-lighter {\n  background-color: #dbdbdb !important; }\n\n.has-text-white-ter {\n  color: whitesmoke !important; }\n\n.has-background-white-ter {\n  background-color: whitesmoke !important; }\n\n.has-text-white-bis {\n  color: #fafafa !important; }\n\n.has-background-white-bis {\n  background-color: #fafafa !important; }\n\n.has-text-weight-light {\n  font-weight: 300 !important; }\n\n.has-text-weight-normal {\n  font-weight: 400 !important; }\n\n.has-text-weight-medium {\n  font-weight: 500 !important; }\n\n.has-text-weight-semibold {\n  font-weight: 600 !important; }\n\n.has-text-weight-bold {\n  font-weight: 700 !important; }\n\n.is-family-primary {\n  font-family: \"Nunito\", sans-serif !important; }\n\n.is-family-secondary {\n  font-family: \"Nunito\", sans-serif !important; }\n\n.is-family-sans-serif {\n  font-family: \"Nunito\", sans-serif !important; }\n\n.is-family-monospace {\n  font-family: monospace !important; }\n\n.is-family-code {\n  font-family: monospace !important; }\n\n.is-block {\n  display: block !important; }\n\n@media screen and (max-width: 768px) {\n  .is-block-mobile {\n    display: block !important; } }\n\n@media screen and (min-width: 769px), print {\n  .is-block-tablet {\n    display: block !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .is-block-tablet-only {\n    display: block !important; } }\n\n@media screen and (max-width: 1023px) {\n  .is-block-touch {\n    display: block !important; } }\n\n@media screen and (min-width: 1024px) {\n  .is-block-desktop {\n    display: block !important; } }\n\n.is-flex {\n  display: flex !important; }\n\n@media screen and (max-width: 768px) {\n  .is-flex-mobile {\n    display: flex !important; } }\n\n@media screen and (min-width: 769px), print {\n  .is-flex-tablet {\n    display: flex !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .is-flex-tablet-only {\n    display: flex !important; } }\n\n@media screen and (max-width: 1023px) {\n  .is-flex-touch {\n    display: flex !important; } }\n\n@media screen and (min-width: 1024px) {\n  .is-flex-desktop {\n    display: flex !important; } }\n\n.is-inline {\n  display: inline !important; }\n\n@media screen and (max-width: 768px) {\n  .is-inline-mobile {\n    display: inline !important; } }\n\n@media screen and (min-width: 769px), print {\n  .is-inline-tablet {\n    display: inline !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .is-inline-tablet-only {\n    display: inline !important; } }\n\n@media screen and (max-width: 1023px) {\n  .is-inline-touch {\n    display: inline !important; } }\n\n@media screen and (min-width: 1024px) {\n  .is-inline-desktop {\n    display: inline !important; } }\n\n.is-inline-block {\n  display: inline-block !important; }\n\n@media screen and (max-width: 768px) {\n  .is-inline-block-mobile {\n    display: inline-block !important; } }\n\n@media screen and (min-width: 769px), print {\n  .is-inline-block-tablet {\n    display: inline-block !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .is-inline-block-tablet-only {\n    display: inline-block !important; } }\n\n@media screen and (max-width: 1023px) {\n  .is-inline-block-touch {\n    display: inline-block !important; } }\n\n@media screen and (min-width: 1024px) {\n  .is-inline-block-desktop {\n    display: inline-block !important; } }\n\n.is-inline-flex {\n  display: inline-flex !important; }\n\n@media screen and (max-width: 768px) {\n  .is-inline-flex-mobile {\n    display: inline-flex !important; } }\n\n@media screen and (min-width: 769px), print {\n  .is-inline-flex-tablet {\n    display: inline-flex !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .is-inline-flex-tablet-only {\n    display: inline-flex !important; } }\n\n@media screen and (max-width: 1023px) {\n  .is-inline-flex-touch {\n    display: inline-flex !important; } }\n\n@media screen and (min-width: 1024px) {\n  .is-inline-flex-desktop {\n    display: inline-flex !important; } }\n\n.is-hidden {\n  display: none !important; }\n\n.is-sr-only {\n  border: none !important;\n  clip: rect(0, 0, 0, 0) !important;\n  height: 0.01em !important;\n  overflow: hidden !important;\n  padding: 0 !important;\n  position: absolute !important;\n  white-space: nowrap !important;\n  width: 0.01em !important; }\n\n@media screen and (max-width: 768px) {\n  .is-hidden-mobile {\n    display: none !important; } }\n\n@media screen and (min-width: 769px), print {\n  .is-hidden-tablet {\n    display: none !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .is-hidden-tablet-only {\n    display: none !important; } }\n\n@media screen and (max-width: 1023px) {\n  .is-hidden-touch {\n    display: none !important; } }\n\n@media screen and (min-width: 1024px) {\n  .is-hidden-desktop {\n    display: none !important; } }\n\n.is-invisible {\n  visibility: hidden !important; }\n\n@media screen and (max-width: 768px) {\n  .is-invisible-mobile {\n    visibility: hidden !important; } }\n\n@media screen and (min-width: 769px), print {\n  .is-invisible-tablet {\n    visibility: hidden !important; } }\n\n@media screen and (min-width: 769px) and (max-width: 1023px) {\n  .is-invisible-tablet-only {\n    visibility: hidden !important; } }\n\n@media screen and (max-width: 1023px) {\n  .is-invisible-touch {\n    visibility: hidden !important; } }\n\n@media screen and (min-width: 1024px) {\n  .is-invisible-desktop {\n    visibility: hidden !important; } }\n\n.is-marginless {\n  margin: 0 !important; }\n\n.is-paddingless {\n  padding: 0 !important; }\n\n.is-radiusless {\n  border-radius: 0 !important; }\n\n.is-shadowless {\n  box-shadow: none !important; }\n\n.is-relative {\n  position: relative !important; }\n\n.button {\n  background-color: white;\n  border-color: #dbdbdb;\n  border-width: 1px;\n  color: #363636;\n  cursor: pointer;\n  justify-content: center;\n  padding-bottom: calc(0.375em - 1px);\n  padding-left: 0.75em;\n  padding-right: 0.75em;\n  padding-top: calc(0.375em - 1px);\n  text-align: center;\n  white-space: nowrap; }\n  .button strong {\n    color: inherit; }\n  .button .icon, .button .icon.is-small, .button .icon.is-medium, .button .icon.is-large {\n    height: 1.5em;\n    width: 1.5em; }\n  .button .icon:first-child:not(:last-child) {\n    margin-left: calc(-0.375em - 1px);\n    margin-right: 0.1875em; }\n  .button .icon:last-child:not(:first-child) {\n    margin-left: 0.1875em;\n    margin-right: calc(-0.375em - 1px); }\n  .button .icon:first-child:last-child {\n    margin-left: calc(-0.375em - 1px);\n    margin-right: calc(-0.375em - 1px); }\n  .button:hover, .button.is-hovered {\n    border-color: #b5b5b5;\n    color: #363636; }\n  .button:focus, .button.is-focused {\n    border-color: #2831c5;\n    color: #363636; }\n    .button:focus:not(:active), .button.is-focused:not(:active) {\n      box-shadow: 0 0 0 0.125em rgba(40, 49, 197, 0.25); }\n  .button:active, .button.is-active {\n    border-color: #4a4a4a;\n    color: #363636; }\n  .button.is-text {\n    background-color: transparent;\n    border-color: transparent;\n    color: #4a4a4a;\n    text-decoration: underline; }\n    .button.is-text:hover, .button.is-text.is-hovered, .button.is-text:focus, .button.is-text.is-focused {\n      background-color: whitesmoke;\n      color: #363636; }\n    .button.is-text:active, .button.is-text.is-active {\n      background-color: #e8e8e8;\n      color: #363636; }\n    .button.is-text[disabled],\n    fieldset[disabled] .button.is-text {\n      background-color: transparent;\n      border-color: transparent;\n      box-shadow: none; }\n  .button.is-white {\n    background-color: white;\n    border-color: transparent;\n    color: #0a0a0a; }\n    .button.is-white:hover, .button.is-white.is-hovered {\n      background-color: #f9f9f9;\n      border-color: transparent;\n      color: #0a0a0a; }\n    .button.is-white:focus, .button.is-white.is-focused {\n      border-color: transparent;\n      color: #0a0a0a; }\n      .button.is-white:focus:not(:active), .button.is-white.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(255, 255, 255, 0.25); }\n    .button.is-white:active, .button.is-white.is-active {\n      background-color: #f2f2f2;\n      border-color: transparent;\n      color: #0a0a0a; }\n    .button.is-white[disabled],\n    fieldset[disabled] .button.is-white {\n      background-color: white;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-white.is-inverted {\n      background-color: #0a0a0a;\n      color: white; }\n      .button.is-white.is-inverted:hover, .button.is-white.is-inverted.is-hovered {\n        background-color: black; }\n      .button.is-white.is-inverted[disabled],\n      fieldset[disabled] .button.is-white.is-inverted {\n        background-color: #0a0a0a;\n        border-color: transparent;\n        box-shadow: none;\n        color: white; }\n    .button.is-white.is-loading::after {\n      border-color: transparent transparent #0a0a0a #0a0a0a !important; }\n    .button.is-white.is-outlined {\n      background-color: transparent;\n      border-color: white;\n      color: white; }\n      .button.is-white.is-outlined:hover, .button.is-white.is-outlined.is-hovered, .button.is-white.is-outlined:focus, .button.is-white.is-outlined.is-focused {\n        background-color: white;\n        border-color: white;\n        color: #0a0a0a; }\n      .button.is-white.is-outlined.is-loading::after {\n        border-color: transparent transparent white white !important; }\n      .button.is-white.is-outlined.is-loading:hover::after, .button.is-white.is-outlined.is-loading.is-hovered::after, .button.is-white.is-outlined.is-loading:focus::after, .button.is-white.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #0a0a0a #0a0a0a !important; }\n      .button.is-white.is-outlined[disabled],\n      fieldset[disabled] .button.is-white.is-outlined {\n        background-color: transparent;\n        border-color: white;\n        box-shadow: none;\n        color: white; }\n    .button.is-white.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: #0a0a0a;\n      color: #0a0a0a; }\n      .button.is-white.is-inverted.is-outlined:hover, .button.is-white.is-inverted.is-outlined.is-hovered, .button.is-white.is-inverted.is-outlined:focus, .button.is-white.is-inverted.is-outlined.is-focused {\n        background-color: #0a0a0a;\n        color: white; }\n      .button.is-white.is-inverted.is-outlined.is-loading:hover::after, .button.is-white.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-white.is-inverted.is-outlined.is-loading:focus::after, .button.is-white.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent white white !important; }\n      .button.is-white.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-white.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: #0a0a0a;\n        box-shadow: none;\n        color: #0a0a0a; }\n  .button.is-black {\n    background-color: #0a0a0a;\n    border-color: transparent;\n    color: white; }\n    .button.is-black:hover, .button.is-black.is-hovered {\n      background-color: #040404;\n      border-color: transparent;\n      color: white; }\n    .button.is-black:focus, .button.is-black.is-focused {\n      border-color: transparent;\n      color: white; }\n      .button.is-black:focus:not(:active), .button.is-black.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(10, 10, 10, 0.25); }\n    .button.is-black:active, .button.is-black.is-active {\n      background-color: black;\n      border-color: transparent;\n      color: white; }\n    .button.is-black[disabled],\n    fieldset[disabled] .button.is-black {\n      background-color: #0a0a0a;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-black.is-inverted {\n      background-color: white;\n      color: #0a0a0a; }\n      .button.is-black.is-inverted:hover, .button.is-black.is-inverted.is-hovered {\n        background-color: #f2f2f2; }\n      .button.is-black.is-inverted[disabled],\n      fieldset[disabled] .button.is-black.is-inverted {\n        background-color: white;\n        border-color: transparent;\n        box-shadow: none;\n        color: #0a0a0a; }\n    .button.is-black.is-loading::after {\n      border-color: transparent transparent white white !important; }\n    .button.is-black.is-outlined {\n      background-color: transparent;\n      border-color: #0a0a0a;\n      color: #0a0a0a; }\n      .button.is-black.is-outlined:hover, .button.is-black.is-outlined.is-hovered, .button.is-black.is-outlined:focus, .button.is-black.is-outlined.is-focused {\n        background-color: #0a0a0a;\n        border-color: #0a0a0a;\n        color: white; }\n      .button.is-black.is-outlined.is-loading::after {\n        border-color: transparent transparent #0a0a0a #0a0a0a !important; }\n      .button.is-black.is-outlined.is-loading:hover::after, .button.is-black.is-outlined.is-loading.is-hovered::after, .button.is-black.is-outlined.is-loading:focus::after, .button.is-black.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent white white !important; }\n      .button.is-black.is-outlined[disabled],\n      fieldset[disabled] .button.is-black.is-outlined {\n        background-color: transparent;\n        border-color: #0a0a0a;\n        box-shadow: none;\n        color: #0a0a0a; }\n    .button.is-black.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: white;\n      color: white; }\n      .button.is-black.is-inverted.is-outlined:hover, .button.is-black.is-inverted.is-outlined.is-hovered, .button.is-black.is-inverted.is-outlined:focus, .button.is-black.is-inverted.is-outlined.is-focused {\n        background-color: white;\n        color: #0a0a0a; }\n      .button.is-black.is-inverted.is-outlined.is-loading:hover::after, .button.is-black.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-black.is-inverted.is-outlined.is-loading:focus::after, .button.is-black.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #0a0a0a #0a0a0a !important; }\n      .button.is-black.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-black.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: white;\n        box-shadow: none;\n        color: white; }\n  .button.is-light {\n    background-color: whitesmoke;\n    border-color: transparent;\n    color: #363636; }\n    .button.is-light:hover, .button.is-light.is-hovered {\n      background-color: #eeeeee;\n      border-color: transparent;\n      color: #363636; }\n    .button.is-light:focus, .button.is-light.is-focused {\n      border-color: transparent;\n      color: #363636; }\n      .button.is-light:focus:not(:active), .button.is-light.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(245, 245, 245, 0.25); }\n    .button.is-light:active, .button.is-light.is-active {\n      background-color: #e8e8e8;\n      border-color: transparent;\n      color: #363636; }\n    .button.is-light[disabled],\n    fieldset[disabled] .button.is-light {\n      background-color: whitesmoke;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-light.is-inverted {\n      background-color: #363636;\n      color: whitesmoke; }\n      .button.is-light.is-inverted:hover, .button.is-light.is-inverted.is-hovered {\n        background-color: #292929; }\n      .button.is-light.is-inverted[disabled],\n      fieldset[disabled] .button.is-light.is-inverted {\n        background-color: #363636;\n        border-color: transparent;\n        box-shadow: none;\n        color: whitesmoke; }\n    .button.is-light.is-loading::after {\n      border-color: transparent transparent #363636 #363636 !important; }\n    .button.is-light.is-outlined {\n      background-color: transparent;\n      border-color: whitesmoke;\n      color: whitesmoke; }\n      .button.is-light.is-outlined:hover, .button.is-light.is-outlined.is-hovered, .button.is-light.is-outlined:focus, .button.is-light.is-outlined.is-focused {\n        background-color: whitesmoke;\n        border-color: whitesmoke;\n        color: #363636; }\n      .button.is-light.is-outlined.is-loading::after {\n        border-color: transparent transparent whitesmoke whitesmoke !important; }\n      .button.is-light.is-outlined.is-loading:hover::after, .button.is-light.is-outlined.is-loading.is-hovered::after, .button.is-light.is-outlined.is-loading:focus::after, .button.is-light.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #363636 #363636 !important; }\n      .button.is-light.is-outlined[disabled],\n      fieldset[disabled] .button.is-light.is-outlined {\n        background-color: transparent;\n        border-color: whitesmoke;\n        box-shadow: none;\n        color: whitesmoke; }\n    .button.is-light.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: #363636;\n      color: #363636; }\n      .button.is-light.is-inverted.is-outlined:hover, .button.is-light.is-inverted.is-outlined.is-hovered, .button.is-light.is-inverted.is-outlined:focus, .button.is-light.is-inverted.is-outlined.is-focused {\n        background-color: #363636;\n        color: whitesmoke; }\n      .button.is-light.is-inverted.is-outlined.is-loading:hover::after, .button.is-light.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-light.is-inverted.is-outlined.is-loading:focus::after, .button.is-light.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent whitesmoke whitesmoke !important; }\n      .button.is-light.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-light.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: #363636;\n        box-shadow: none;\n        color: #363636; }\n  .button.is-dark {\n    background-color: #363636;\n    border-color: transparent;\n    color: whitesmoke; }\n    .button.is-dark:hover, .button.is-dark.is-hovered {\n      background-color: #2f2f2f;\n      border-color: transparent;\n      color: whitesmoke; }\n    .button.is-dark:focus, .button.is-dark.is-focused {\n      border-color: transparent;\n      color: whitesmoke; }\n      .button.is-dark:focus:not(:active), .button.is-dark.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(54, 54, 54, 0.25); }\n    .button.is-dark:active, .button.is-dark.is-active {\n      background-color: #292929;\n      border-color: transparent;\n      color: whitesmoke; }\n    .button.is-dark[disabled],\n    fieldset[disabled] .button.is-dark {\n      background-color: #363636;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-dark.is-inverted {\n      background-color: whitesmoke;\n      color: #363636; }\n      .button.is-dark.is-inverted:hover, .button.is-dark.is-inverted.is-hovered {\n        background-color: #e8e8e8; }\n      .button.is-dark.is-inverted[disabled],\n      fieldset[disabled] .button.is-dark.is-inverted {\n        background-color: whitesmoke;\n        border-color: transparent;\n        box-shadow: none;\n        color: #363636; }\n    .button.is-dark.is-loading::after {\n      border-color: transparent transparent whitesmoke whitesmoke !important; }\n    .button.is-dark.is-outlined {\n      background-color: transparent;\n      border-color: #363636;\n      color: #363636; }\n      .button.is-dark.is-outlined:hover, .button.is-dark.is-outlined.is-hovered, .button.is-dark.is-outlined:focus, .button.is-dark.is-outlined.is-focused {\n        background-color: #363636;\n        border-color: #363636;\n        color: whitesmoke; }\n      .button.is-dark.is-outlined.is-loading::after {\n        border-color: transparent transparent #363636 #363636 !important; }\n      .button.is-dark.is-outlined.is-loading:hover::after, .button.is-dark.is-outlined.is-loading.is-hovered::after, .button.is-dark.is-outlined.is-loading:focus::after, .button.is-dark.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent whitesmoke whitesmoke !important; }\n      .button.is-dark.is-outlined[disabled],\n      fieldset[disabled] .button.is-dark.is-outlined {\n        background-color: transparent;\n        border-color: #363636;\n        box-shadow: none;\n        color: #363636; }\n    .button.is-dark.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: whitesmoke;\n      color: whitesmoke; }\n      .button.is-dark.is-inverted.is-outlined:hover, .button.is-dark.is-inverted.is-outlined.is-hovered, .button.is-dark.is-inverted.is-outlined:focus, .button.is-dark.is-inverted.is-outlined.is-focused {\n        background-color: whitesmoke;\n        color: #363636; }\n      .button.is-dark.is-inverted.is-outlined.is-loading:hover::after, .button.is-dark.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-dark.is-inverted.is-outlined.is-loading:focus::after, .button.is-dark.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #363636 #363636 !important; }\n      .button.is-dark.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-dark.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: whitesmoke;\n        box-shadow: none;\n        color: whitesmoke; }\n  .button.is-primary {\n    background-color: #44a3d4;\n    border-color: transparent;\n    color: #fff; }\n    .button.is-primary:hover, .button.is-primary.is-hovered {\n      background-color: #3a9ed2;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-primary:focus, .button.is-primary.is-focused {\n      border-color: transparent;\n      color: #fff; }\n      .button.is-primary:focus:not(:active), .button.is-primary.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(68, 163, 212, 0.25); }\n    .button.is-primary:active, .button.is-primary.is-active {\n      background-color: #3099cf;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-primary[disabled],\n    fieldset[disabled] .button.is-primary {\n      background-color: #44a3d4;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-primary.is-inverted {\n      background-color: #fff;\n      color: #44a3d4; }\n      .button.is-primary.is-inverted:hover, .button.is-primary.is-inverted.is-hovered {\n        background-color: #f2f2f2; }\n      .button.is-primary.is-inverted[disabled],\n      fieldset[disabled] .button.is-primary.is-inverted {\n        background-color: #fff;\n        border-color: transparent;\n        box-shadow: none;\n        color: #44a3d4; }\n    .button.is-primary.is-loading::after {\n      border-color: transparent transparent #fff #fff !important; }\n    .button.is-primary.is-outlined {\n      background-color: transparent;\n      border-color: #44a3d4;\n      color: #44a3d4; }\n      .button.is-primary.is-outlined:hover, .button.is-primary.is-outlined.is-hovered, .button.is-primary.is-outlined:focus, .button.is-primary.is-outlined.is-focused {\n        background-color: #44a3d4;\n        border-color: #44a3d4;\n        color: #fff; }\n      .button.is-primary.is-outlined.is-loading::after {\n        border-color: transparent transparent #44a3d4 #44a3d4 !important; }\n      .button.is-primary.is-outlined.is-loading:hover::after, .button.is-primary.is-outlined.is-loading.is-hovered::after, .button.is-primary.is-outlined.is-loading:focus::after, .button.is-primary.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #fff #fff !important; }\n      .button.is-primary.is-outlined[disabled],\n      fieldset[disabled] .button.is-primary.is-outlined {\n        background-color: transparent;\n        border-color: #44a3d4;\n        box-shadow: none;\n        color: #44a3d4; }\n    .button.is-primary.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: #fff;\n      color: #fff; }\n      .button.is-primary.is-inverted.is-outlined:hover, .button.is-primary.is-inverted.is-outlined.is-hovered, .button.is-primary.is-inverted.is-outlined:focus, .button.is-primary.is-inverted.is-outlined.is-focused {\n        background-color: #fff;\n        color: #44a3d4; }\n      .button.is-primary.is-inverted.is-outlined.is-loading:hover::after, .button.is-primary.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-primary.is-inverted.is-outlined.is-loading:focus::after, .button.is-primary.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #44a3d4 #44a3d4 !important; }\n      .button.is-primary.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-primary.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: #fff;\n        box-shadow: none;\n        color: #fff; }\n  .button.is-link {\n    background-color: #2831c5;\n    border-color: transparent;\n    color: #fff; }\n    .button.is-link:hover, .button.is-link.is-hovered {\n      background-color: #262eba;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-link:focus, .button.is-link.is-focused {\n      border-color: transparent;\n      color: #fff; }\n      .button.is-link:focus:not(:active), .button.is-link.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(40, 49, 197, 0.25); }\n    .button.is-link:active, .button.is-link.is-active {\n      background-color: #242cb0;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-link[disabled],\n    fieldset[disabled] .button.is-link {\n      background-color: #2831c5;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-link.is-inverted {\n      background-color: #fff;\n      color: #2831c5; }\n      .button.is-link.is-inverted:hover, .button.is-link.is-inverted.is-hovered {\n        background-color: #f2f2f2; }\n      .button.is-link.is-inverted[disabled],\n      fieldset[disabled] .button.is-link.is-inverted {\n        background-color: #fff;\n        border-color: transparent;\n        box-shadow: none;\n        color: #2831c5; }\n    .button.is-link.is-loading::after {\n      border-color: transparent transparent #fff #fff !important; }\n    .button.is-link.is-outlined {\n      background-color: transparent;\n      border-color: #2831c5;\n      color: #2831c5; }\n      .button.is-link.is-outlined:hover, .button.is-link.is-outlined.is-hovered, .button.is-link.is-outlined:focus, .button.is-link.is-outlined.is-focused {\n        background-color: #2831c5;\n        border-color: #2831c5;\n        color: #fff; }\n      .button.is-link.is-outlined.is-loading::after {\n        border-color: transparent transparent #2831c5 #2831c5 !important; }\n      .button.is-link.is-outlined.is-loading:hover::after, .button.is-link.is-outlined.is-loading.is-hovered::after, .button.is-link.is-outlined.is-loading:focus::after, .button.is-link.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #fff #fff !important; }\n      .button.is-link.is-outlined[disabled],\n      fieldset[disabled] .button.is-link.is-outlined {\n        background-color: transparent;\n        border-color: #2831c5;\n        box-shadow: none;\n        color: #2831c5; }\n    .button.is-link.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: #fff;\n      color: #fff; }\n      .button.is-link.is-inverted.is-outlined:hover, .button.is-link.is-inverted.is-outlined.is-hovered, .button.is-link.is-inverted.is-outlined:focus, .button.is-link.is-inverted.is-outlined.is-focused {\n        background-color: #fff;\n        color: #2831c5; }\n      .button.is-link.is-inverted.is-outlined.is-loading:hover::after, .button.is-link.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-link.is-inverted.is-outlined.is-loading:focus::after, .button.is-link.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #2831c5 #2831c5 !important; }\n      .button.is-link.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-link.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: #fff;\n        box-shadow: none;\n        color: #fff; }\n  .button.is-info {\n    background-color: #209cee;\n    border-color: transparent;\n    color: #fff; }\n    .button.is-info:hover, .button.is-info.is-hovered {\n      background-color: #1496ed;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-info:focus, .button.is-info.is-focused {\n      border-color: transparent;\n      color: #fff; }\n      .button.is-info:focus:not(:active), .button.is-info.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(32, 156, 238, 0.25); }\n    .button.is-info:active, .button.is-info.is-active {\n      background-color: #118fe4;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-info[disabled],\n    fieldset[disabled] .button.is-info {\n      background-color: #209cee;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-info.is-inverted {\n      background-color: #fff;\n      color: #209cee; }\n      .button.is-info.is-inverted:hover, .button.is-info.is-inverted.is-hovered {\n        background-color: #f2f2f2; }\n      .button.is-info.is-inverted[disabled],\n      fieldset[disabled] .button.is-info.is-inverted {\n        background-color: #fff;\n        border-color: transparent;\n        box-shadow: none;\n        color: #209cee; }\n    .button.is-info.is-loading::after {\n      border-color: transparent transparent #fff #fff !important; }\n    .button.is-info.is-outlined {\n      background-color: transparent;\n      border-color: #209cee;\n      color: #209cee; }\n      .button.is-info.is-outlined:hover, .button.is-info.is-outlined.is-hovered, .button.is-info.is-outlined:focus, .button.is-info.is-outlined.is-focused {\n        background-color: #209cee;\n        border-color: #209cee;\n        color: #fff; }\n      .button.is-info.is-outlined.is-loading::after {\n        border-color: transparent transparent #209cee #209cee !important; }\n      .button.is-info.is-outlined.is-loading:hover::after, .button.is-info.is-outlined.is-loading.is-hovered::after, .button.is-info.is-outlined.is-loading:focus::after, .button.is-info.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #fff #fff !important; }\n      .button.is-info.is-outlined[disabled],\n      fieldset[disabled] .button.is-info.is-outlined {\n        background-color: transparent;\n        border-color: #209cee;\n        box-shadow: none;\n        color: #209cee; }\n    .button.is-info.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: #fff;\n      color: #fff; }\n      .button.is-info.is-inverted.is-outlined:hover, .button.is-info.is-inverted.is-outlined.is-hovered, .button.is-info.is-inverted.is-outlined:focus, .button.is-info.is-inverted.is-outlined.is-focused {\n        background-color: #fff;\n        color: #209cee; }\n      .button.is-info.is-inverted.is-outlined.is-loading:hover::after, .button.is-info.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-info.is-inverted.is-outlined.is-loading:focus::after, .button.is-info.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #209cee #209cee !important; }\n      .button.is-info.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-info.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: #fff;\n        box-shadow: none;\n        color: #fff; }\n  .button.is-success {\n    background-color: #15a632;\n    border-color: transparent;\n    color: #fff; }\n    .button.is-success:hover, .button.is-success.is-hovered {\n      background-color: #149b2f;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-success:focus, .button.is-success.is-focused {\n      border-color: transparent;\n      color: #fff; }\n      .button.is-success:focus:not(:active), .button.is-success.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(21, 166, 50, 0.25); }\n    .button.is-success:active, .button.is-success.is-active {\n      background-color: #128f2b;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-success[disabled],\n    fieldset[disabled] .button.is-success {\n      background-color: #15a632;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-success.is-inverted {\n      background-color: #fff;\n      color: #15a632; }\n      .button.is-success.is-inverted:hover, .button.is-success.is-inverted.is-hovered {\n        background-color: #f2f2f2; }\n      .button.is-success.is-inverted[disabled],\n      fieldset[disabled] .button.is-success.is-inverted {\n        background-color: #fff;\n        border-color: transparent;\n        box-shadow: none;\n        color: #15a632; }\n    .button.is-success.is-loading::after {\n      border-color: transparent transparent #fff #fff !important; }\n    .button.is-success.is-outlined {\n      background-color: transparent;\n      border-color: #15a632;\n      color: #15a632; }\n      .button.is-success.is-outlined:hover, .button.is-success.is-outlined.is-hovered, .button.is-success.is-outlined:focus, .button.is-success.is-outlined.is-focused {\n        background-color: #15a632;\n        border-color: #15a632;\n        color: #fff; }\n      .button.is-success.is-outlined.is-loading::after {\n        border-color: transparent transparent #15a632 #15a632 !important; }\n      .button.is-success.is-outlined.is-loading:hover::after, .button.is-success.is-outlined.is-loading.is-hovered::after, .button.is-success.is-outlined.is-loading:focus::after, .button.is-success.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #fff #fff !important; }\n      .button.is-success.is-outlined[disabled],\n      fieldset[disabled] .button.is-success.is-outlined {\n        background-color: transparent;\n        border-color: #15a632;\n        box-shadow: none;\n        color: #15a632; }\n    .button.is-success.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: #fff;\n      color: #fff; }\n      .button.is-success.is-inverted.is-outlined:hover, .button.is-success.is-inverted.is-outlined.is-hovered, .button.is-success.is-inverted.is-outlined:focus, .button.is-success.is-inverted.is-outlined.is-focused {\n        background-color: #fff;\n        color: #15a632; }\n      .button.is-success.is-inverted.is-outlined.is-loading:hover::after, .button.is-success.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-success.is-inverted.is-outlined.is-loading:focus::after, .button.is-success.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #15a632 #15a632 !important; }\n      .button.is-success.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-success.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: #fff;\n        box-shadow: none;\n        color: #fff; }\n  .button.is-warning {\n    background-color: #e0b905;\n    border-color: transparent;\n    color: rgba(0, 0, 0, 0.7); }\n    .button.is-warning:hover, .button.is-warning.is-hovered {\n      background-color: #d4af05;\n      border-color: transparent;\n      color: rgba(0, 0, 0, 0.7); }\n    .button.is-warning:focus, .button.is-warning.is-focused {\n      border-color: transparent;\n      color: rgba(0, 0, 0, 0.7); }\n      .button.is-warning:focus:not(:active), .button.is-warning.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(224, 185, 5, 0.25); }\n    .button.is-warning:active, .button.is-warning.is-active {\n      background-color: #c7a404;\n      border-color: transparent;\n      color: rgba(0, 0, 0, 0.7); }\n    .button.is-warning[disabled],\n    fieldset[disabled] .button.is-warning {\n      background-color: #e0b905;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-warning.is-inverted {\n      background-color: rgba(0, 0, 0, 0.7);\n      color: #e0b905; }\n      .button.is-warning.is-inverted:hover, .button.is-warning.is-inverted.is-hovered {\n        background-color: rgba(0, 0, 0, 0.7); }\n      .button.is-warning.is-inverted[disabled],\n      fieldset[disabled] .button.is-warning.is-inverted {\n        background-color: rgba(0, 0, 0, 0.7);\n        border-color: transparent;\n        box-shadow: none;\n        color: #e0b905; }\n    .button.is-warning.is-loading::after {\n      border-color: transparent transparent rgba(0, 0, 0, 0.7) rgba(0, 0, 0, 0.7) !important; }\n    .button.is-warning.is-outlined {\n      background-color: transparent;\n      border-color: #e0b905;\n      color: #e0b905; }\n      .button.is-warning.is-outlined:hover, .button.is-warning.is-outlined.is-hovered, .button.is-warning.is-outlined:focus, .button.is-warning.is-outlined.is-focused {\n        background-color: #e0b905;\n        border-color: #e0b905;\n        color: rgba(0, 0, 0, 0.7); }\n      .button.is-warning.is-outlined.is-loading::after {\n        border-color: transparent transparent #e0b905 #e0b905 !important; }\n      .button.is-warning.is-outlined.is-loading:hover::after, .button.is-warning.is-outlined.is-loading.is-hovered::after, .button.is-warning.is-outlined.is-loading:focus::after, .button.is-warning.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent rgba(0, 0, 0, 0.7) rgba(0, 0, 0, 0.7) !important; }\n      .button.is-warning.is-outlined[disabled],\n      fieldset[disabled] .button.is-warning.is-outlined {\n        background-color: transparent;\n        border-color: #e0b905;\n        box-shadow: none;\n        color: #e0b905; }\n    .button.is-warning.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: rgba(0, 0, 0, 0.7);\n      color: rgba(0, 0, 0, 0.7); }\n      .button.is-warning.is-inverted.is-outlined:hover, .button.is-warning.is-inverted.is-outlined.is-hovered, .button.is-warning.is-inverted.is-outlined:focus, .button.is-warning.is-inverted.is-outlined.is-focused {\n        background-color: rgba(0, 0, 0, 0.7);\n        color: #e0b905; }\n      .button.is-warning.is-inverted.is-outlined.is-loading:hover::after, .button.is-warning.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-warning.is-inverted.is-outlined.is-loading:focus::after, .button.is-warning.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #e0b905 #e0b905 !important; }\n      .button.is-warning.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-warning.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: rgba(0, 0, 0, 0.7);\n        box-shadow: none;\n        color: rgba(0, 0, 0, 0.7); }\n  .button.is-danger {\n    background-color: #d42535;\n    border-color: transparent;\n    color: #fff; }\n    .button.is-danger:hover, .button.is-danger.is-hovered {\n      background-color: #c92332;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-danger:focus, .button.is-danger.is-focused {\n      border-color: transparent;\n      color: #fff; }\n      .button.is-danger:focus:not(:active), .button.is-danger.is-focused:not(:active) {\n        box-shadow: 0 0 0 0.125em rgba(212, 37, 53, 0.25); }\n    .button.is-danger:active, .button.is-danger.is-active {\n      background-color: #be2130;\n      border-color: transparent;\n      color: #fff; }\n    .button.is-danger[disabled],\n    fieldset[disabled] .button.is-danger {\n      background-color: #d42535;\n      border-color: transparent;\n      box-shadow: none; }\n    .button.is-danger.is-inverted {\n      background-color: #fff;\n      color: #d42535; }\n      .button.is-danger.is-inverted:hover, .button.is-danger.is-inverted.is-hovered {\n        background-color: #f2f2f2; }\n      .button.is-danger.is-inverted[disabled],\n      fieldset[disabled] .button.is-danger.is-inverted {\n        background-color: #fff;\n        border-color: transparent;\n        box-shadow: none;\n        color: #d42535; }\n    .button.is-danger.is-loading::after {\n      border-color: transparent transparent #fff #fff !important; }\n    .button.is-danger.is-outlined {\n      background-color: transparent;\n      border-color: #d42535;\n      color: #d42535; }\n      .button.is-danger.is-outlined:hover, .button.is-danger.is-outlined.is-hovered, .button.is-danger.is-outlined:focus, .button.is-danger.is-outlined.is-focused {\n        background-color: #d42535;\n        border-color: #d42535;\n        color: #fff; }\n      .button.is-danger.is-outlined.is-loading::after {\n        border-color: transparent transparent #d42535 #d42535 !important; }\n      .button.is-danger.is-outlined.is-loading:hover::after, .button.is-danger.is-outlined.is-loading.is-hovered::after, .button.is-danger.is-outlined.is-loading:focus::after, .button.is-danger.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #fff #fff !important; }\n      .button.is-danger.is-outlined[disabled],\n      fieldset[disabled] .button.is-danger.is-outlined {\n        background-color: transparent;\n        border-color: #d42535;\n        box-shadow: none;\n        color: #d42535; }\n    .button.is-danger.is-inverted.is-outlined {\n      background-color: transparent;\n      border-color: #fff;\n      color: #fff; }\n      .button.is-danger.is-inverted.is-outlined:hover, .button.is-danger.is-inverted.is-outlined.is-hovered, .button.is-danger.is-inverted.is-outlined:focus, .button.is-danger.is-inverted.is-outlined.is-focused {\n        background-color: #fff;\n        color: #d42535; }\n      .button.is-danger.is-inverted.is-outlined.is-loading:hover::after, .button.is-danger.is-inverted.is-outlined.is-loading.is-hovered::after, .button.is-danger.is-inverted.is-outlined.is-loading:focus::after, .button.is-danger.is-inverted.is-outlined.is-loading.is-focused::after {\n        border-color: transparent transparent #d42535 #d42535 !important; }\n      .button.is-danger.is-inverted.is-outlined[disabled],\n      fieldset[disabled] .button.is-danger.is-inverted.is-outlined {\n        background-color: transparent;\n        border-color: #fff;\n        box-shadow: none;\n        color: #fff; }\n  .button.is-small {\n    border-radius: 2px;\n    font-size: 0.75rem; }\n  .button.is-normal {\n    font-size: 1rem; }\n  .button.is-medium {\n    font-size: 1.25rem; }\n  .button.is-large {\n    font-size: 1.5rem; }\n  .button[disabled],\n  fieldset[disabled] .button {\n    background-color: white;\n    border-color: #dbdbdb;\n    box-shadow: none;\n    opacity: 0.5; }\n  .button.is-fullwidth {\n    display: flex;\n    width: 100%; }\n  .button.is-loading {\n    color: transparent !important;\n    pointer-events: none; }\n    .button.is-loading::after {\n      position: absolute;\n      left: calc(50% - (1em / 2));\n      top: calc(50% - (1em / 2));\n      position: absolute !important; }\n  .button.is-static {\n    background-color: whitesmoke;\n    border-color: #dbdbdb;\n    color: #7a7a7a;\n    box-shadow: none;\n    pointer-events: none; }\n  .button.is-rounded {\n    border-radius: 290486px;\n    padding-left: 1em;\n    padding-right: 1em; }\n\n.buttons {\n  align-items: center;\n  display: flex;\n  flex-wrap: wrap;\n  justify-content: flex-start; }\n  .buttons .button {\n    margin-bottom: 0.5rem; }\n    .buttons .button:not(:last-child):not(.is-fullwidth) {\n      margin-right: 0.5rem; }\n  .buttons:last-child {\n    margin-bottom: -0.5rem; }\n  .buttons:not(:last-child) {\n    margin-bottom: 1rem; }\n  .buttons.are-small .button:not(.is-normal):not(.is-medium):not(.is-large) {\n    border-radius: 2px;\n    font-size: 0.75rem; }\n  .buttons.are-medium .button:not(.is-small):not(.is-normal):not(.is-large) {\n    font-size: 1.25rem; }\n  .buttons.are-large .button:not(.is-small):not(.is-normal):not(.is-medium) {\n    font-size: 1.5rem; }\n  .buttons.has-addons .button:not(:first-child) {\n    border-bottom-left-radius: 0;\n    border-top-left-radius: 0; }\n  .buttons.has-addons .button:not(:last-child) {\n    border-bottom-right-radius: 0;\n    border-top-right-radius: 0;\n    margin-right: -1px; }\n  .buttons.has-addons .button:last-child {\n    margin-right: 0; }\n  .buttons.has-addons .button:hover, .buttons.has-addons .button.is-hovered {\n    z-index: 2; }\n  .buttons.has-addons .button:focus, .buttons.has-addons .button.is-focused, .buttons.has-addons .button:active, .buttons.has-addons .button.is-active, .buttons.has-addons .button.is-selected {\n    z-index: 3; }\n    .buttons.has-addons .button:focus:hover, .buttons.has-addons .button.is-focused:hover, .buttons.has-addons .button:active:hover, .buttons.has-addons .button.is-active:hover, .buttons.has-addons .button.is-selected:hover {\n      z-index: 4; }\n  .buttons.has-addons .button.is-expanded {\n    flex-grow: 1;\n    flex-shrink: 1; }\n  .buttons.is-centered {\n    justify-content: center; }\n    .buttons.is-centered:not(.has-addons) .button:not(.is-fullwidth) {\n      margin-left: 0.25rem;\n      margin-right: 0.25rem; }\n  .buttons.is-right {\n    justify-content: flex-end; }\n    .buttons.is-right:not(.has-addons) .button:not(.is-fullwidth) {\n      margin-left: 0.25rem;\n      margin-right: 0.25rem; }\n\n.container {\n  flex-grow: 1;\n  margin: 0 auto;\n  position: relative;\n  width: auto; }\n  @media screen and (min-width: 1024px) {\n    .container {\n      max-width: 960px; }\n      .container.is-fluid {\n        margin-left: 32px;\n        margin-right: 32px;\n        max-width: none; } }\n\n.title,\n.subtitle {\n  word-break: break-word; }\n  .title em,\n  .title span,\n  .subtitle em,\n  .subtitle span {\n    font-weight: inherit; }\n  .title sub,\n  .subtitle sub {\n    font-size: 0.75em; }\n  .title sup,\n  .subtitle sup {\n    font-size: 0.75em; }\n  .title .tag,\n  .subtitle .tag {\n    vertical-align: middle; }\n\n.title {\n  color: #363636;\n  font-size: 2rem;\n  font-weight: 600;\n  line-height: 1.125; }\n  .title strong {\n    color: inherit;\n    font-weight: inherit; }\n  .title + .highlight {\n    margin-top: -0.75rem; }\n  .title:not(.is-spaced) + .subtitle {\n    margin-top: -1.25rem; }\n  .title.is-1 {\n    font-size: 3rem; }\n  .title.is-2 {\n    font-size: 2.5rem; }\n  .title.is-3 {\n    font-size: 2rem; }\n  .title.is-4 {\n    font-size: 1.5rem; }\n  .title.is-5 {\n    font-size: 1.25rem; }\n  .title.is-6 {\n    font-size: 1rem; }\n  .title.is-7 {\n    font-size: 0.75rem; }\n\n.subtitle {\n  color: #4a4a4a;\n  font-size: 1.25rem;\n  font-weight: 400;\n  line-height: 1.25; }\n  .subtitle strong {\n    color: #363636;\n    font-weight: 600; }\n  .subtitle:not(.is-spaced) + .title {\n    margin-top: -1.25rem; }\n  .subtitle.is-1 {\n    font-size: 3rem; }\n  .subtitle.is-2 {\n    font-size: 2.5rem; }\n  .subtitle.is-3 {\n    font-size: 2rem; }\n  .subtitle.is-4 {\n    font-size: 1.5rem; }\n  .subtitle.is-5 {\n    font-size: 1.25rem; }\n  .subtitle.is-6 {\n    font-size: 1rem; }\n  .subtitle.is-7 {\n    font-size: 0.75rem; }\n\n.input, .textarea, .select select {\n  background-color: white;\n  border-color: #dbdbdb;\n  border-radius: 4px;\n  color: #363636; }\n  .input::-moz-placeholder, .textarea::-moz-placeholder, .select select::-moz-placeholder {\n    color: rgba(54, 54, 54, 0.3); }\n  .input::-webkit-input-placeholder, .textarea::-webkit-input-placeholder, .select select::-webkit-input-placeholder {\n    color: rgba(54, 54, 54, 0.3); }\n  .input:-moz-placeholder, .textarea:-moz-placeholder, .select select:-moz-placeholder {\n    color: rgba(54, 54, 54, 0.3); }\n  .input:-ms-input-placeholder, .textarea:-ms-input-placeholder, .select select:-ms-input-placeholder {\n    color: rgba(54, 54, 54, 0.3); }\n  .input:hover, .textarea:hover, .select select:hover, .is-hovered.input, .is-hovered.textarea, .select select.is-hovered {\n    border-color: #b5b5b5; }\n  .input:focus, .textarea:focus, .select select:focus, .is-focused.input, .is-focused.textarea, .select select.is-focused, .input:active, .textarea:active, .select select:active, .is-active.input, .is-active.textarea, .select select.is-active {\n    border-color: #2831c5;\n    box-shadow: 0 0 0 0.125em rgba(40, 49, 197, 0.25); }\n  .input[disabled], .textarea[disabled], .select select[disabled],\n  fieldset[disabled] .input,\n  fieldset[disabled] .textarea,\n  fieldset[disabled] .select select,\n  .select fieldset[disabled] select {\n    background-color: whitesmoke;\n    border-color: whitesmoke;\n    box-shadow: none;\n    color: #7a7a7a; }\n    .input[disabled]::-moz-placeholder, .textarea[disabled]::-moz-placeholder, .select select[disabled]::-moz-placeholder,\n    fieldset[disabled] .input::-moz-placeholder,\n    fieldset[disabled] .textarea::-moz-placeholder,\n    fieldset[disabled] .select select::-moz-placeholder,\n    .select fieldset[disabled] select::-moz-placeholder {\n      color: rgba(122, 122, 122, 0.3); }\n    .input[disabled]::-webkit-input-placeholder, .textarea[disabled]::-webkit-input-placeholder, .select select[disabled]::-webkit-input-placeholder,\n    fieldset[disabled] .input::-webkit-input-placeholder,\n    fieldset[disabled] .textarea::-webkit-input-placeholder,\n    fieldset[disabled] .select select::-webkit-input-placeholder,\n    .select fieldset[disabled] select::-webkit-input-placeholder {\n      color: rgba(122, 122, 122, 0.3); }\n    .input[disabled]:-moz-placeholder, .textarea[disabled]:-moz-placeholder, .select select[disabled]:-moz-placeholder,\n    fieldset[disabled] .input:-moz-placeholder,\n    fieldset[disabled] .textarea:-moz-placeholder,\n    fieldset[disabled] .select select:-moz-placeholder,\n    .select fieldset[disabled] select:-moz-placeholder {\n      color: rgba(122, 122, 122, 0.3); }\n    .input[disabled]:-ms-input-placeholder, .textarea[disabled]:-ms-input-placeholder, .select select[disabled]:-ms-input-placeholder,\n    fieldset[disabled] .input:-ms-input-placeholder,\n    fieldset[disabled] .textarea:-ms-input-placeholder,\n    fieldset[disabled] .select select:-ms-input-placeholder,\n    .select fieldset[disabled] select:-ms-input-placeholder {\n      color: rgba(122, 122, 122, 0.3); }\n\n.input, .textarea {\n  box-shadow: inset 0 1px 2px rgba(10, 10, 10, 0.1);\n  max-width: 100%;\n  width: 100%; }\n  .input[readonly], .textarea[readonly] {\n    box-shadow: none; }\n  .is-white.input, .is-white.textarea {\n    border-color: white; }\n    .is-white.input:focus, .is-white.textarea:focus, .is-white.is-focused.input, .is-white.is-focused.textarea, .is-white.input:active, .is-white.textarea:active, .is-white.is-active.input, .is-white.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(255, 255, 255, 0.25); }\n  .is-black.input, .is-black.textarea {\n    border-color: #0a0a0a; }\n    .is-black.input:focus, .is-black.textarea:focus, .is-black.is-focused.input, .is-black.is-focused.textarea, .is-black.input:active, .is-black.textarea:active, .is-black.is-active.input, .is-black.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(10, 10, 10, 0.25); }\n  .is-light.input, .is-light.textarea {\n    border-color: whitesmoke; }\n    .is-light.input:focus, .is-light.textarea:focus, .is-light.is-focused.input, .is-light.is-focused.textarea, .is-light.input:active, .is-light.textarea:active, .is-light.is-active.input, .is-light.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(245, 245, 245, 0.25); }\n  .is-dark.input, .is-dark.textarea {\n    border-color: #363636; }\n    .is-dark.input:focus, .is-dark.textarea:focus, .is-dark.is-focused.input, .is-dark.is-focused.textarea, .is-dark.input:active, .is-dark.textarea:active, .is-dark.is-active.input, .is-dark.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(54, 54, 54, 0.25); }\n  .is-primary.input, .is-primary.textarea {\n    border-color: #44a3d4; }\n    .is-primary.input:focus, .is-primary.textarea:focus, .is-primary.is-focused.input, .is-primary.is-focused.textarea, .is-primary.input:active, .is-primary.textarea:active, .is-primary.is-active.input, .is-primary.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(68, 163, 212, 0.25); }\n  .is-link.input, .is-link.textarea {\n    border-color: #2831c5; }\n    .is-link.input:focus, .is-link.textarea:focus, .is-link.is-focused.input, .is-link.is-focused.textarea, .is-link.input:active, .is-link.textarea:active, .is-link.is-active.input, .is-link.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(40, 49, 197, 0.25); }\n  .is-info.input, .is-info.textarea {\n    border-color: #209cee; }\n    .is-info.input:focus, .is-info.textarea:focus, .is-info.is-focused.input, .is-info.is-focused.textarea, .is-info.input:active, .is-info.textarea:active, .is-info.is-active.input, .is-info.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(32, 156, 238, 0.25); }\n  .is-success.input, .is-success.textarea {\n    border-color: #15a632; }\n    .is-success.input:focus, .is-success.textarea:focus, .is-success.is-focused.input, .is-success.is-focused.textarea, .is-success.input:active, .is-success.textarea:active, .is-success.is-active.input, .is-success.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(21, 166, 50, 0.25); }\n  .is-warning.input, .is-warning.textarea {\n    border-color: #e0b905; }\n    .is-warning.input:focus, .is-warning.textarea:focus, .is-warning.is-focused.input, .is-warning.is-focused.textarea, .is-warning.input:active, .is-warning.textarea:active, .is-warning.is-active.input, .is-warning.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(224, 185, 5, 0.25); }\n  .is-danger.input, .is-danger.textarea {\n    border-color: #d42535; }\n    .is-danger.input:focus, .is-danger.textarea:focus, .is-danger.is-focused.input, .is-danger.is-focused.textarea, .is-danger.input:active, .is-danger.textarea:active, .is-danger.is-active.input, .is-danger.is-active.textarea {\n      box-shadow: 0 0 0 0.125em rgba(212, 37, 53, 0.25); }\n  .is-small.input, .is-small.textarea {\n    border-radius: 2px;\n    font-size: 0.75rem; }\n  .is-medium.input, .is-medium.textarea {\n    font-size: 1.25rem; }\n  .is-large.input, .is-large.textarea {\n    font-size: 1.5rem; }\n  .is-fullwidth.input, .is-fullwidth.textarea {\n    display: block;\n    width: 100%; }\n  .is-inline.input, .is-inline.textarea {\n    display: inline;\n    width: auto; }\n\n.input.is-rounded {\n  border-radius: 290486px;\n  padding-left: 1em;\n  padding-right: 1em; }\n\n.input.is-static {\n  background-color: transparent;\n  border-color: transparent;\n  box-shadow: none;\n  padding-left: 0;\n  padding-right: 0; }\n\n.textarea {\n  display: block;\n  max-width: 100%;\n  min-width: 100%;\n  padding: 0.625em;\n  resize: vertical; }\n  .textarea:not([rows]) {\n    max-height: 600px;\n    min-height: 120px; }\n  .textarea[rows] {\n    height: initial; }\n  .textarea.has-fixed-size {\n    resize: none; }\n\n.checkbox, .radio {\n  cursor: pointer;\n  display: inline-block;\n  line-height: 1.25;\n  position: relative; }\n  .checkbox input, .radio input {\n    cursor: pointer; }\n  .checkbox:hover, .radio:hover {\n    color: #363636; }\n  .checkbox[disabled], .radio[disabled],\n  fieldset[disabled] .checkbox,\n  fieldset[disabled] .radio {\n    color: #7a7a7a;\n    cursor: not-allowed; }\n\n.radio + .radio {\n  margin-left: 0.5em; }\n\n.select {\n  display: inline-block;\n  max-width: 100%;\n  position: relative;\n  vertical-align: top; }\n  .select:not(.is-multiple) {\n    height: 2.25em; }\n  .select:not(.is-multiple):not(.is-loading)::after {\n    border-color: #2831c5;\n    right: 1.125em;\n    z-index: 4; }\n  .select.is-rounded select {\n    border-radius: 290486px;\n    padding-left: 1em; }\n  .select select {\n    cursor: pointer;\n    display: block;\n    font-size: 1em;\n    max-width: 100%;\n    outline: none; }\n    .select select::-ms-expand {\n      display: none; }\n    .select select[disabled]:hover,\n    fieldset[disabled] .select select:hover {\n      border-color: whitesmoke; }\n    .select select:not([multiple]) {\n      padding-right: 2.5em; }\n    .select select[multiple] {\n      height: auto;\n      padding: 0; }\n      .select select[multiple] option {\n        padding: 0.5em 1em; }\n  .select:not(.is-multiple):not(.is-loading):hover::after {\n    border-color: #363636; }\n  .select.is-white:not(:hover)::after {\n    border-color: white; }\n  .select.is-white select {\n    border-color: white; }\n    .select.is-white select:hover, .select.is-white select.is-hovered {\n      border-color: #f2f2f2; }\n    .select.is-white select:focus, .select.is-white select.is-focused, .select.is-white select:active, .select.is-white select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(255, 255, 255, 0.25); }\n  .select.is-black:not(:hover)::after {\n    border-color: #0a0a0a; }\n  .select.is-black select {\n    border-color: #0a0a0a; }\n    .select.is-black select:hover, .select.is-black select.is-hovered {\n      border-color: black; }\n    .select.is-black select:focus, .select.is-black select.is-focused, .select.is-black select:active, .select.is-black select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(10, 10, 10, 0.25); }\n  .select.is-light:not(:hover)::after {\n    border-color: whitesmoke; }\n  .select.is-light select {\n    border-color: whitesmoke; }\n    .select.is-light select:hover, .select.is-light select.is-hovered {\n      border-color: #e8e8e8; }\n    .select.is-light select:focus, .select.is-light select.is-focused, .select.is-light select:active, .select.is-light select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(245, 245, 245, 0.25); }\n  .select.is-dark:not(:hover)::after {\n    border-color: #363636; }\n  .select.is-dark select {\n    border-color: #363636; }\n    .select.is-dark select:hover, .select.is-dark select.is-hovered {\n      border-color: #292929; }\n    .select.is-dark select:focus, .select.is-dark select.is-focused, .select.is-dark select:active, .select.is-dark select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(54, 54, 54, 0.25); }\n  .select.is-primary:not(:hover)::after {\n    border-color: #44a3d4; }\n  .select.is-primary select {\n    border-color: #44a3d4; }\n    .select.is-primary select:hover, .select.is-primary select.is-hovered {\n      border-color: #3099cf; }\n    .select.is-primary select:focus, .select.is-primary select.is-focused, .select.is-primary select:active, .select.is-primary select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(68, 163, 212, 0.25); }\n  .select.is-link:not(:hover)::after {\n    border-color: #2831c5; }\n  .select.is-link select {\n    border-color: #2831c5; }\n    .select.is-link select:hover, .select.is-link select.is-hovered {\n      border-color: #242cb0; }\n    .select.is-link select:focus, .select.is-link select.is-focused, .select.is-link select:active, .select.is-link select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(40, 49, 197, 0.25); }\n  .select.is-info:not(:hover)::after {\n    border-color: #209cee; }\n  .select.is-info select {\n    border-color: #209cee; }\n    .select.is-info select:hover, .select.is-info select.is-hovered {\n      border-color: #118fe4; }\n    .select.is-info select:focus, .select.is-info select.is-focused, .select.is-info select:active, .select.is-info select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(32, 156, 238, 0.25); }\n  .select.is-success:not(:hover)::after {\n    border-color: #15a632; }\n  .select.is-success select {\n    border-color: #15a632; }\n    .select.is-success select:hover, .select.is-success select.is-hovered {\n      border-color: #128f2b; }\n    .select.is-success select:focus, .select.is-success select.is-focused, .select.is-success select:active, .select.is-success select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(21, 166, 50, 0.25); }\n  .select.is-warning:not(:hover)::after {\n    border-color: #e0b905; }\n  .select.is-warning select {\n    border-color: #e0b905; }\n    .select.is-warning select:hover, .select.is-warning select.is-hovered {\n      border-color: #c7a404; }\n    .select.is-warning select:focus, .select.is-warning select.is-focused, .select.is-warning select:active, .select.is-warning select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(224, 185, 5, 0.25); }\n  .select.is-danger:not(:hover)::after {\n    border-color: #d42535; }\n  .select.is-danger select {\n    border-color: #d42535; }\n    .select.is-danger select:hover, .select.is-danger select.is-hovered {\n      border-color: #be2130; }\n    .select.is-danger select:focus, .select.is-danger select.is-focused, .select.is-danger select:active, .select.is-danger select.is-active {\n      box-shadow: 0 0 0 0.125em rgba(212, 37, 53, 0.25); }\n  .select.is-small {\n    border-radius: 2px;\n    font-size: 0.75rem; }\n  .select.is-medium {\n    font-size: 1.25rem; }\n  .select.is-large {\n    font-size: 1.5rem; }\n  .select.is-disabled::after {\n    border-color: #7a7a7a; }\n  .select.is-fullwidth {\n    width: 100%; }\n    .select.is-fullwidth select {\n      width: 100%; }\n  .select.is-loading::after {\n    margin-top: 0;\n    position: absolute;\n    right: 0.625em;\n    top: 0.625em;\n    transform: none; }\n  .select.is-loading.is-small:after {\n    font-size: 0.75rem; }\n  .select.is-loading.is-medium:after {\n    font-size: 1.25rem; }\n  .select.is-loading.is-large:after {\n    font-size: 1.5rem; }\n\n.file {\n  align-items: stretch;\n  display: flex;\n  justify-content: flex-start;\n  position: relative; }\n  .file.is-white .file-cta {\n    background-color: white;\n    border-color: transparent;\n    color: #0a0a0a; }\n  .file.is-white:hover .file-cta, .file.is-white.is-hovered .file-cta {\n    background-color: #f9f9f9;\n    border-color: transparent;\n    color: #0a0a0a; }\n  .file.is-white:focus .file-cta, .file.is-white.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(255, 255, 255, 0.25);\n    color: #0a0a0a; }\n  .file.is-white:active .file-cta, .file.is-white.is-active .file-cta {\n    background-color: #f2f2f2;\n    border-color: transparent;\n    color: #0a0a0a; }\n  .file.is-black .file-cta {\n    background-color: #0a0a0a;\n    border-color: transparent;\n    color: white; }\n  .file.is-black:hover .file-cta, .file.is-black.is-hovered .file-cta {\n    background-color: #040404;\n    border-color: transparent;\n    color: white; }\n  .file.is-black:focus .file-cta, .file.is-black.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(10, 10, 10, 0.25);\n    color: white; }\n  .file.is-black:active .file-cta, .file.is-black.is-active .file-cta {\n    background-color: black;\n    border-color: transparent;\n    color: white; }\n  .file.is-light .file-cta {\n    background-color: whitesmoke;\n    border-color: transparent;\n    color: #363636; }\n  .file.is-light:hover .file-cta, .file.is-light.is-hovered .file-cta {\n    background-color: #eeeeee;\n    border-color: transparent;\n    color: #363636; }\n  .file.is-light:focus .file-cta, .file.is-light.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(245, 245, 245, 0.25);\n    color: #363636; }\n  .file.is-light:active .file-cta, .file.is-light.is-active .file-cta {\n    background-color: #e8e8e8;\n    border-color: transparent;\n    color: #363636; }\n  .file.is-dark .file-cta {\n    background-color: #363636;\n    border-color: transparent;\n    color: whitesmoke; }\n  .file.is-dark:hover .file-cta, .file.is-dark.is-hovered .file-cta {\n    background-color: #2f2f2f;\n    border-color: transparent;\n    color: whitesmoke; }\n  .file.is-dark:focus .file-cta, .file.is-dark.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(54, 54, 54, 0.25);\n    color: whitesmoke; }\n  .file.is-dark:active .file-cta, .file.is-dark.is-active .file-cta {\n    background-color: #292929;\n    border-color: transparent;\n    color: whitesmoke; }\n  .file.is-primary .file-cta {\n    background-color: #44a3d4;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-primary:hover .file-cta, .file.is-primary.is-hovered .file-cta {\n    background-color: #3a9ed2;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-primary:focus .file-cta, .file.is-primary.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(68, 163, 212, 0.25);\n    color: #fff; }\n  .file.is-primary:active .file-cta, .file.is-primary.is-active .file-cta {\n    background-color: #3099cf;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-link .file-cta {\n    background-color: #2831c5;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-link:hover .file-cta, .file.is-link.is-hovered .file-cta {\n    background-color: #262eba;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-link:focus .file-cta, .file.is-link.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(40, 49, 197, 0.25);\n    color: #fff; }\n  .file.is-link:active .file-cta, .file.is-link.is-active .file-cta {\n    background-color: #242cb0;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-info .file-cta {\n    background-color: #209cee;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-info:hover .file-cta, .file.is-info.is-hovered .file-cta {\n    background-color: #1496ed;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-info:focus .file-cta, .file.is-info.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(32, 156, 238, 0.25);\n    color: #fff; }\n  .file.is-info:active .file-cta, .file.is-info.is-active .file-cta {\n    background-color: #118fe4;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-success .file-cta {\n    background-color: #15a632;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-success:hover .file-cta, .file.is-success.is-hovered .file-cta {\n    background-color: #149b2f;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-success:focus .file-cta, .file.is-success.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(21, 166, 50, 0.25);\n    color: #fff; }\n  .file.is-success:active .file-cta, .file.is-success.is-active .file-cta {\n    background-color: #128f2b;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-warning .file-cta {\n    background-color: #e0b905;\n    border-color: transparent;\n    color: rgba(0, 0, 0, 0.7); }\n  .file.is-warning:hover .file-cta, .file.is-warning.is-hovered .file-cta {\n    background-color: #d4af05;\n    border-color: transparent;\n    color: rgba(0, 0, 0, 0.7); }\n  .file.is-warning:focus .file-cta, .file.is-warning.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(224, 185, 5, 0.25);\n    color: rgba(0, 0, 0, 0.7); }\n  .file.is-warning:active .file-cta, .file.is-warning.is-active .file-cta {\n    background-color: #c7a404;\n    border-color: transparent;\n    color: rgba(0, 0, 0, 0.7); }\n  .file.is-danger .file-cta {\n    background-color: #d42535;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-danger:hover .file-cta, .file.is-danger.is-hovered .file-cta {\n    background-color: #c92332;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-danger:focus .file-cta, .file.is-danger.is-focused .file-cta {\n    border-color: transparent;\n    box-shadow: 0 0 0.5em rgba(212, 37, 53, 0.25);\n    color: #fff; }\n  .file.is-danger:active .file-cta, .file.is-danger.is-active .file-cta {\n    background-color: #be2130;\n    border-color: transparent;\n    color: #fff; }\n  .file.is-small {\n    font-size: 0.75rem; }\n  .file.is-medium {\n    font-size: 1.25rem; }\n    .file.is-medium .file-icon .fa {\n      font-size: 21px; }\n  .file.is-large {\n    font-size: 1.5rem; }\n    .file.is-large .file-icon .fa {\n      font-size: 28px; }\n  .file.has-name .file-cta {\n    border-bottom-right-radius: 0;\n    border-top-right-radius: 0; }\n  .file.has-name .file-name {\n    border-bottom-left-radius: 0;\n    border-top-left-radius: 0; }\n  .file.has-name.is-empty .file-cta {\n    border-radius: 4px; }\n  .file.has-name.is-empty .file-name {\n    display: none; }\n  .file.is-boxed .file-label {\n    flex-direction: column; }\n  .file.is-boxed .file-cta {\n    flex-direction: column;\n    height: auto;\n    padding: 1em 3em; }\n  .file.is-boxed .file-name {\n    border-width: 0 1px 1px; }\n  .file.is-boxed .file-icon {\n    height: 1.5em;\n    width: 1.5em; }\n    .file.is-boxed .file-icon .fa {\n      font-size: 21px; }\n  .file.is-boxed.is-small .file-icon .fa {\n    font-size: 14px; }\n  .file.is-boxed.is-medium .file-icon .fa {\n    font-size: 28px; }\n  .file.is-boxed.is-large .file-icon .fa {\n    font-size: 35px; }\n  .file.is-boxed.has-name .file-cta {\n    border-radius: 4px 4px 0 0; }\n  .file.is-boxed.has-name .file-name {\n    border-radius: 0 0 4px 4px;\n    border-width: 0 1px 1px; }\n  .file.is-centered {\n    justify-content: center; }\n  .file.is-fullwidth .file-label {\n    width: 100%; }\n  .file.is-fullwidth .file-name {\n    flex-grow: 1;\n    max-width: none; }\n  .file.is-right {\n    justify-content: flex-end; }\n    .file.is-right .file-cta {\n      border-radius: 0 4px 4px 0; }\n    .file.is-right .file-name {\n      border-radius: 4px 0 0 4px;\n      border-width: 1px 0 1px 1px;\n      order: -1; }\n\n.file-label {\n  align-items: stretch;\n  display: flex;\n  cursor: pointer;\n  justify-content: flex-start;\n  overflow: hidden;\n  position: relative; }\n  .file-label:hover .file-cta {\n    background-color: #eeeeee;\n    color: #363636; }\n  .file-label:hover .file-name {\n    border-color: #d5d5d5; }\n  .file-label:active .file-cta {\n    background-color: #e8e8e8;\n    color: #363636; }\n  .file-label:active .file-name {\n    border-color: #cfcfcf; }\n\n.file-input {\n  height: 100%;\n  left: 0;\n  opacity: 0;\n  outline: none;\n  position: absolute;\n  top: 0;\n  width: 100%; }\n\n.file-cta,\n.file-name {\n  border-color: #dbdbdb;\n  border-radius: 4px;\n  font-size: 1em;\n  padding-left: 1em;\n  padding-right: 1em;\n  white-space: nowrap; }\n\n.file-cta {\n  background-color: whitesmoke;\n  color: #4a4a4a; }\n\n.file-name {\n  border-color: #dbdbdb;\n  border-style: solid;\n  border-width: 1px 1px 1px 0;\n  display: block;\n  max-width: 16em;\n  overflow: hidden;\n  text-align: left;\n  text-overflow: ellipsis; }\n\n.file-icon {\n  align-items: center;\n  display: flex;\n  height: 1em;\n  justify-content: center;\n  margin-right: 0.5em;\n  width: 1em; }\n  .file-icon .fa {\n    font-size: 14px; }\n\n.label {\n  color: #363636;\n  display: block;\n  font-size: 1rem;\n  font-weight: 700; }\n  .label:not(:last-child) {\n    margin-bottom: 0.5em; }\n  .label.is-small {\n    font-size: 0.75rem; }\n  .label.is-medium {\n    font-size: 1.25rem; }\n  .label.is-large {\n    font-size: 1.5rem; }\n\n.help {\n  display: block;\n  font-size: 0.75rem;\n  margin-top: 0.25rem; }\n  .help.is-white {\n    color: white; }\n  .help.is-black {\n    color: #0a0a0a; }\n  .help.is-light {\n    color: whitesmoke; }\n  .help.is-dark {\n    color: #363636; }\n  .help.is-primary {\n    color: #44a3d4; }\n  .help.is-link {\n    color: #2831c5; }\n  .help.is-info {\n    color: #209cee; }\n  .help.is-success {\n    color: #15a632; }\n  .help.is-warning {\n    color: #e0b905; }\n  .help.is-danger {\n    color: #d42535; }\n\n.field:not(:last-child) {\n  margin-bottom: 0.75rem; }\n\n.field.has-addons {\n  display: flex;\n  justify-content: flex-start; }\n  .field.has-addons .control:not(:last-child) {\n    margin-right: -1px; }\n  .field.has-addons .control:not(:first-child):not(:last-child) .button,\n  .field.has-addons .control:not(:first-child):not(:last-child) .input,\n  .field.has-addons .control:not(:first-child):not(:last-child) .select select {\n    border-radius: 0; }\n  .field.has-addons .control:first-child:not(:only-child) .button,\n  .field.has-addons .control:first-child:not(:only-child) .input,\n  .field.has-addons .control:first-child:not(:only-child) .select select {\n    border-bottom-right-radius: 0;\n    border-top-right-radius: 0; }\n  .field.has-addons .control:last-child:not(:only-child) .button,\n  .field.has-addons .control:last-child:not(:only-child) .input,\n  .field.has-addons .control:last-child:not(:only-child) .select select {\n    border-bottom-left-radius: 0;\n    border-top-left-radius: 0; }\n  .field.has-addons .control .button:not([disabled]):hover, .field.has-addons .control .button:not([disabled]).is-hovered,\n  .field.has-addons .control .input:not([disabled]):hover,\n  .field.has-addons .control .input:not([disabled]).is-hovered,\n  .field.has-addons .control .select select:not([disabled]):hover,\n  .field.has-addons .control .select select:not([disabled]).is-hovered {\n    z-index: 2; }\n  .field.has-addons .control .button:not([disabled]):focus, .field.has-addons .control .button:not([disabled]).is-focused, .field.has-addons .control .button:not([disabled]):active, .field.has-addons .control .button:not([disabled]).is-active,\n  .field.has-addons .control .input:not([disabled]):focus,\n  .field.has-addons .control .input:not([disabled]).is-focused,\n  .field.has-addons .control .input:not([disabled]):active,\n  .field.has-addons .control .input:not([disabled]).is-active,\n  .field.has-addons .control .select select:not([disabled]):focus,\n  .field.has-addons .control .select select:not([disabled]).is-focused,\n  .field.has-addons .control .select select:not([disabled]):active,\n  .field.has-addons .control .select select:not([disabled]).is-active {\n    z-index: 3; }\n    .field.has-addons .control .button:not([disabled]):focus:hover, .field.has-addons .control .button:not([disabled]).is-focused:hover, .field.has-addons .control .button:not([disabled]):active:hover, .field.has-addons .control .button:not([disabled]).is-active:hover,\n    .field.has-addons .control .input:not([disabled]):focus:hover,\n    .field.has-addons .control .input:not([disabled]).is-focused:hover,\n    .field.has-addons .control .input:not([disabled]):active:hover,\n    .field.has-addons .control .input:not([disabled]).is-active:hover,\n    .field.has-addons .control .select select:not([disabled]):focus:hover,\n    .field.has-addons .control .select select:not([disabled]).is-focused:hover,\n    .field.has-addons .control .select select:not([disabled]):active:hover,\n    .field.has-addons .control .select select:not([disabled]).is-active:hover {\n      z-index: 4; }\n  .field.has-addons .control.is-expanded {\n    flex-grow: 1;\n    flex-shrink: 1; }\n  .field.has-addons.has-addons-centered {\n    justify-content: center; }\n  .field.has-addons.has-addons-right {\n    justify-content: flex-end; }\n  .field.has-addons.has-addons-fullwidth .control {\n    flex-grow: 1;\n    flex-shrink: 0; }\n\n.field.is-grouped {\n  display: flex;\n  justify-content: flex-start; }\n  .field.is-grouped > .control {\n    flex-shrink: 0; }\n    .field.is-grouped > .control:not(:last-child) {\n      margin-bottom: 0;\n      margin-right: 0.75rem; }\n    .field.is-grouped > .control.is-expanded {\n      flex-grow: 1;\n      flex-shrink: 1; }\n  .field.is-grouped.is-grouped-centered {\n    justify-content: center; }\n  .field.is-grouped.is-grouped-right {\n    justify-content: flex-end; }\n  .field.is-grouped.is-grouped-multiline {\n    flex-wrap: wrap; }\n    .field.is-grouped.is-grouped-multiline > .control:last-child, .field.is-grouped.is-grouped-multiline > .control:not(:last-child) {\n      margin-bottom: 0.75rem; }\n    .field.is-grouped.is-grouped-multiline:last-child {\n      margin-bottom: -0.75rem; }\n    .field.is-grouped.is-grouped-multiline:not(:last-child) {\n      margin-bottom: 0; }\n\n@media screen and (min-width: 769px), print {\n  .field.is-horizontal {\n    display: flex; } }\n\n.field-label .label {\n  font-size: inherit; }\n\n@media screen and (max-width: 768px) {\n  .field-label {\n    margin-bottom: 0.5rem; } }\n\n@media screen and (min-width: 769px), print {\n  .field-label {\n    flex-basis: 0;\n    flex-grow: 1;\n    flex-shrink: 0;\n    margin-right: 1.5rem;\n    text-align: right; }\n    .field-label.is-small {\n      font-size: 0.75rem;\n      padding-top: 0.375em; }\n    .field-label.is-normal {\n      padding-top: 0.375em; }\n    .field-label.is-medium {\n      font-size: 1.25rem;\n      padding-top: 0.375em; }\n    .field-label.is-large {\n      font-size: 1.5rem;\n      padding-top: 0.375em; } }\n\n.field-body .field .field {\n  margin-bottom: 0; }\n\n@media screen and (min-width: 769px), print {\n  .field-body {\n    display: flex;\n    flex-basis: 0;\n    flex-grow: 5;\n    flex-shrink: 1; }\n    .field-body .field {\n      margin-bottom: 0; }\n    .field-body > .field {\n      flex-shrink: 1; }\n      .field-body > .field:not(.is-narrow) {\n        flex-grow: 1; }\n      .field-body > .field:not(:last-child) {\n        margin-right: 0.75rem; } }\n\n.control {\n  box-sizing: border-box;\n  clear: both;\n  font-size: 1rem;\n  position: relative;\n  text-align: left; }\n  .control.has-icons-left .input:focus ~ .icon,\n  .control.has-icons-left .select:focus ~ .icon, .control.has-icons-right .input:focus ~ .icon,\n  .control.has-icons-right .select:focus ~ .icon {\n    color: #7a7a7a; }\n  .control.has-icons-left .input.is-small ~ .icon,\n  .control.has-icons-left .select.is-small ~ .icon, .control.has-icons-right .input.is-small ~ .icon,\n  .control.has-icons-right .select.is-small ~ .icon {\n    font-size: 0.75rem; }\n  .control.has-icons-left .input.is-medium ~ .icon,\n  .control.has-icons-left .select.is-medium ~ .icon, .control.has-icons-right .input.is-medium ~ .icon,\n  .control.has-icons-right .select.is-medium ~ .icon {\n    font-size: 1.25rem; }\n  .control.has-icons-left .input.is-large ~ .icon,\n  .control.has-icons-left .select.is-large ~ .icon, .control.has-icons-right .input.is-large ~ .icon,\n  .control.has-icons-right .select.is-large ~ .icon {\n    font-size: 1.5rem; }\n  .control.has-icons-left .icon, .control.has-icons-right .icon {\n    color: #dbdbdb;\n    height: 2.25em;\n    pointer-events: none;\n    position: absolute;\n    top: 0;\n    width: 2.25em;\n    z-index: 4; }\n  .control.has-icons-left .input,\n  .control.has-icons-left .select select {\n    padding-left: 2.25em; }\n  .control.has-icons-left .icon.is-left {\n    left: 0; }\n  .control.has-icons-right .input,\n  .control.has-icons-right .select select {\n    padding-right: 2.25em; }\n  .control.has-icons-right .icon.is-right {\n    right: 0; }\n  .control.is-loading::after {\n    position: absolute !important;\n    right: 0.625em;\n    top: 0.625em;\n    z-index: 4; }\n  .control.is-loading.is-small:after {\n    font-size: 0.75rem; }\n  .control.is-loading.is-medium:after {\n    font-size: 1.25rem; }\n  .control.is-loading.is-large:after {\n    font-size: 1.5rem; }\n\n.navbar {\n  background-color: white;\n  min-height: 3.25rem;\n  position: relative;\n  z-index: 30; }\n  .navbar.is-white {\n    background-color: white;\n    color: #0a0a0a; }\n    .navbar.is-white .navbar-brand > .navbar-item,\n    .navbar.is-white .navbar-brand .navbar-link {\n      color: #0a0a0a; }\n    .navbar.is-white .navbar-brand > a.navbar-item:focus, .navbar.is-white .navbar-brand > a.navbar-item:hover, .navbar.is-white .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-white .navbar-brand .navbar-link:focus,\n    .navbar.is-white .navbar-brand .navbar-link:hover,\n    .navbar.is-white .navbar-brand .navbar-link.is-active {\n      background-color: #f2f2f2;\n      color: #0a0a0a; }\n    .navbar.is-white .navbar-brand .navbar-link::after {\n      border-color: #0a0a0a; }\n    .navbar.is-white .navbar-burger {\n      color: #0a0a0a; }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-white .navbar-start > .navbar-item,\n      .navbar.is-white .navbar-start .navbar-link,\n      .navbar.is-white .navbar-end > .navbar-item,\n      .navbar.is-white .navbar-end .navbar-link {\n        color: #0a0a0a; }\n      .navbar.is-white .navbar-start > a.navbar-item:focus, .navbar.is-white .navbar-start > a.navbar-item:hover, .navbar.is-white .navbar-start > a.navbar-item.is-active,\n      .navbar.is-white .navbar-start .navbar-link:focus,\n      .navbar.is-white .navbar-start .navbar-link:hover,\n      .navbar.is-white .navbar-start .navbar-link.is-active,\n      .navbar.is-white .navbar-end > a.navbar-item:focus,\n      .navbar.is-white .navbar-end > a.navbar-item:hover,\n      .navbar.is-white .navbar-end > a.navbar-item.is-active,\n      .navbar.is-white .navbar-end .navbar-link:focus,\n      .navbar.is-white .navbar-end .navbar-link:hover,\n      .navbar.is-white .navbar-end .navbar-link.is-active {\n        background-color: #f2f2f2;\n        color: #0a0a0a; }\n      .navbar.is-white .navbar-start .navbar-link::after,\n      .navbar.is-white .navbar-end .navbar-link::after {\n        border-color: #0a0a0a; }\n      .navbar.is-white .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-white .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-white .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: #f2f2f2;\n        color: #0a0a0a; }\n      .navbar.is-white .navbar-dropdown a.navbar-item.is-active {\n        background-color: white;\n        color: #0a0a0a; } }\n  .navbar.is-black {\n    background-color: #0a0a0a;\n    color: white; }\n    .navbar.is-black .navbar-brand > .navbar-item,\n    .navbar.is-black .navbar-brand .navbar-link {\n      color: white; }\n    .navbar.is-black .navbar-brand > a.navbar-item:focus, .navbar.is-black .navbar-brand > a.navbar-item:hover, .navbar.is-black .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-black .navbar-brand .navbar-link:focus,\n    .navbar.is-black .navbar-brand .navbar-link:hover,\n    .navbar.is-black .navbar-brand .navbar-link.is-active {\n      background-color: black;\n      color: white; }\n    .navbar.is-black .navbar-brand .navbar-link::after {\n      border-color: white; }\n    .navbar.is-black .navbar-burger {\n      color: white; }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-black .navbar-start > .navbar-item,\n      .navbar.is-black .navbar-start .navbar-link,\n      .navbar.is-black .navbar-end > .navbar-item,\n      .navbar.is-black .navbar-end .navbar-link {\n        color: white; }\n      .navbar.is-black .navbar-start > a.navbar-item:focus, .navbar.is-black .navbar-start > a.navbar-item:hover, .navbar.is-black .navbar-start > a.navbar-item.is-active,\n      .navbar.is-black .navbar-start .navbar-link:focus,\n      .navbar.is-black .navbar-start .navbar-link:hover,\n      .navbar.is-black .navbar-start .navbar-link.is-active,\n      .navbar.is-black .navbar-end > a.navbar-item:focus,\n      .navbar.is-black .navbar-end > a.navbar-item:hover,\n      .navbar.is-black .navbar-end > a.navbar-item.is-active,\n      .navbar.is-black .navbar-end .navbar-link:focus,\n      .navbar.is-black .navbar-end .navbar-link:hover,\n      .navbar.is-black .navbar-end .navbar-link.is-active {\n        background-color: black;\n        color: white; }\n      .navbar.is-black .navbar-start .navbar-link::after,\n      .navbar.is-black .navbar-end .navbar-link::after {\n        border-color: white; }\n      .navbar.is-black .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-black .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-black .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: black;\n        color: white; }\n      .navbar.is-black .navbar-dropdown a.navbar-item.is-active {\n        background-color: #0a0a0a;\n        color: white; } }\n  .navbar.is-light {\n    background-color: whitesmoke;\n    color: #363636; }\n    .navbar.is-light .navbar-brand > .navbar-item,\n    .navbar.is-light .navbar-brand .navbar-link {\n      color: #363636; }\n    .navbar.is-light .navbar-brand > a.navbar-item:focus, .navbar.is-light .navbar-brand > a.navbar-item:hover, .navbar.is-light .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-light .navbar-brand .navbar-link:focus,\n    .navbar.is-light .navbar-brand .navbar-link:hover,\n    .navbar.is-light .navbar-brand .navbar-link.is-active {\n      background-color: #e8e8e8;\n      color: #363636; }\n    .navbar.is-light .navbar-brand .navbar-link::after {\n      border-color: #363636; }\n    .navbar.is-light .navbar-burger {\n      color: #363636; }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-light .navbar-start > .navbar-item,\n      .navbar.is-light .navbar-start .navbar-link,\n      .navbar.is-light .navbar-end > .navbar-item,\n      .navbar.is-light .navbar-end .navbar-link {\n        color: #363636; }\n      .navbar.is-light .navbar-start > a.navbar-item:focus, .navbar.is-light .navbar-start > a.navbar-item:hover, .navbar.is-light .navbar-start > a.navbar-item.is-active,\n      .navbar.is-light .navbar-start .navbar-link:focus,\n      .navbar.is-light .navbar-start .navbar-link:hover,\n      .navbar.is-light .navbar-start .navbar-link.is-active,\n      .navbar.is-light .navbar-end > a.navbar-item:focus,\n      .navbar.is-light .navbar-end > a.navbar-item:hover,\n      .navbar.is-light .navbar-end > a.navbar-item.is-active,\n      .navbar.is-light .navbar-end .navbar-link:focus,\n      .navbar.is-light .navbar-end .navbar-link:hover,\n      .navbar.is-light .navbar-end .navbar-link.is-active {\n        background-color: #e8e8e8;\n        color: #363636; }\n      .navbar.is-light .navbar-start .navbar-link::after,\n      .navbar.is-light .navbar-end .navbar-link::after {\n        border-color: #363636; }\n      .navbar.is-light .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-light .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-light .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: #e8e8e8;\n        color: #363636; }\n      .navbar.is-light .navbar-dropdown a.navbar-item.is-active {\n        background-color: whitesmoke;\n        color: #363636; } }\n  .navbar.is-dark {\n    background-color: #363636;\n    color: whitesmoke; }\n    .navbar.is-dark .navbar-brand > .navbar-item,\n    .navbar.is-dark .navbar-brand .navbar-link {\n      color: whitesmoke; }\n    .navbar.is-dark .navbar-brand > a.navbar-item:focus, .navbar.is-dark .navbar-brand > a.navbar-item:hover, .navbar.is-dark .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-dark .navbar-brand .navbar-link:focus,\n    .navbar.is-dark .navbar-brand .navbar-link:hover,\n    .navbar.is-dark .navbar-brand .navbar-link.is-active {\n      background-color: #292929;\n      color: whitesmoke; }\n    .navbar.is-dark .navbar-brand .navbar-link::after {\n      border-color: whitesmoke; }\n    .navbar.is-dark .navbar-burger {\n      color: whitesmoke; }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-dark .navbar-start > .navbar-item,\n      .navbar.is-dark .navbar-start .navbar-link,\n      .navbar.is-dark .navbar-end > .navbar-item,\n      .navbar.is-dark .navbar-end .navbar-link {\n        color: whitesmoke; }\n      .navbar.is-dark .navbar-start > a.navbar-item:focus, .navbar.is-dark .navbar-start > a.navbar-item:hover, .navbar.is-dark .navbar-start > a.navbar-item.is-active,\n      .navbar.is-dark .navbar-start .navbar-link:focus,\n      .navbar.is-dark .navbar-start .navbar-link:hover,\n      .navbar.is-dark .navbar-start .navbar-link.is-active,\n      .navbar.is-dark .navbar-end > a.navbar-item:focus,\n      .navbar.is-dark .navbar-end > a.navbar-item:hover,\n      .navbar.is-dark .navbar-end > a.navbar-item.is-active,\n      .navbar.is-dark .navbar-end .navbar-link:focus,\n      .navbar.is-dark .navbar-end .navbar-link:hover,\n      .navbar.is-dark .navbar-end .navbar-link.is-active {\n        background-color: #292929;\n        color: whitesmoke; }\n      .navbar.is-dark .navbar-start .navbar-link::after,\n      .navbar.is-dark .navbar-end .navbar-link::after {\n        border-color: whitesmoke; }\n      .navbar.is-dark .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-dark .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-dark .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: #292929;\n        color: whitesmoke; }\n      .navbar.is-dark .navbar-dropdown a.navbar-item.is-active {\n        background-color: #363636;\n        color: whitesmoke; } }\n  .navbar.is-primary {\n    background-color: #44a3d4;\n    color: #fff; }\n    .navbar.is-primary .navbar-brand > .navbar-item,\n    .navbar.is-primary .navbar-brand .navbar-link {\n      color: #fff; }\n    .navbar.is-primary .navbar-brand > a.navbar-item:focus, .navbar.is-primary .navbar-brand > a.navbar-item:hover, .navbar.is-primary .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-primary .navbar-brand .navbar-link:focus,\n    .navbar.is-primary .navbar-brand .navbar-link:hover,\n    .navbar.is-primary .navbar-brand .navbar-link.is-active {\n      background-color: #3099cf;\n      color: #fff; }\n    .navbar.is-primary .navbar-brand .navbar-link::after {\n      border-color: #fff; }\n    .navbar.is-primary .navbar-burger {\n      color: #fff; }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-primary .navbar-start > .navbar-item,\n      .navbar.is-primary .navbar-start .navbar-link,\n      .navbar.is-primary .navbar-end > .navbar-item,\n      .navbar.is-primary .navbar-end .navbar-link {\n        color: #fff; }\n      .navbar.is-primary .navbar-start > a.navbar-item:focus, .navbar.is-primary .navbar-start > a.navbar-item:hover, .navbar.is-primary .navbar-start > a.navbar-item.is-active,\n      .navbar.is-primary .navbar-start .navbar-link:focus,\n      .navbar.is-primary .navbar-start .navbar-link:hover,\n      .navbar.is-primary .navbar-start .navbar-link.is-active,\n      .navbar.is-primary .navbar-end > a.navbar-item:focus,\n      .navbar.is-primary .navbar-end > a.navbar-item:hover,\n      .navbar.is-primary .navbar-end > a.navbar-item.is-active,\n      .navbar.is-primary .navbar-end .navbar-link:focus,\n      .navbar.is-primary .navbar-end .navbar-link:hover,\n      .navbar.is-primary .navbar-end .navbar-link.is-active {\n        background-color: #3099cf;\n        color: #fff; }\n      .navbar.is-primary .navbar-start .navbar-link::after,\n      .navbar.is-primary .navbar-end .navbar-link::after {\n        border-color: #fff; }\n      .navbar.is-primary .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-primary .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-primary .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: #3099cf;\n        color: #fff; }\n      .navbar.is-primary .navbar-dropdown a.navbar-item.is-active {\n        background-color: #44a3d4;\n        color: #fff; } }\n  .navbar.is-link {\n    background-color: #2831c5;\n    color: #fff; }\n    .navbar.is-link .navbar-brand > .navbar-item,\n    .navbar.is-link .navbar-brand .navbar-link {\n      color: #fff; }\n    .navbar.is-link .navbar-brand > a.navbar-item:focus, .navbar.is-link .navbar-brand > a.navbar-item:hover, .navbar.is-link .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-link .navbar-brand .navbar-link:focus,\n    .navbar.is-link .navbar-brand .navbar-link:hover,\n    .navbar.is-link .navbar-brand .navbar-link.is-active {\n      background-color: #242cb0;\n      color: #fff; }\n    .navbar.is-link .navbar-brand .navbar-link::after {\n      border-color: #fff; }\n    .navbar.is-link .navbar-burger {\n      color: #fff; }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-link .navbar-start > .navbar-item,\n      .navbar.is-link .navbar-start .navbar-link,\n      .navbar.is-link .navbar-end > .navbar-item,\n      .navbar.is-link .navbar-end .navbar-link {\n        color: #fff; }\n      .navbar.is-link .navbar-start > a.navbar-item:focus, .navbar.is-link .navbar-start > a.navbar-item:hover, .navbar.is-link .navbar-start > a.navbar-item.is-active,\n      .navbar.is-link .navbar-start .navbar-link:focus,\n      .navbar.is-link .navbar-start .navbar-link:hover,\n      .navbar.is-link .navbar-start .navbar-link.is-active,\n      .navbar.is-link .navbar-end > a.navbar-item:focus,\n      .navbar.is-link .navbar-end > a.navbar-item:hover,\n      .navbar.is-link .navbar-end > a.navbar-item.is-active,\n      .navbar.is-link .navbar-end .navbar-link:focus,\n      .navbar.is-link .navbar-end .navbar-link:hover,\n      .navbar.is-link .navbar-end .navbar-link.is-active {\n        background-color: #242cb0;\n        color: #fff; }\n      .navbar.is-link .navbar-start .navbar-link::after,\n      .navbar.is-link .navbar-end .navbar-link::after {\n        border-color: #fff; }\n      .navbar.is-link .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-link .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-link .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: #242cb0;\n        color: #fff; }\n      .navbar.is-link .navbar-dropdown a.navbar-item.is-active {\n        background-color: #2831c5;\n        color: #fff; } }\n  .navbar.is-info {\n    background-color: #209cee;\n    color: #fff; }\n    .navbar.is-info .navbar-brand > .navbar-item,\n    .navbar.is-info .navbar-brand .navbar-link {\n      color: #fff; }\n    .navbar.is-info .navbar-brand > a.navbar-item:focus, .navbar.is-info .navbar-brand > a.navbar-item:hover, .navbar.is-info .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-info .navbar-brand .navbar-link:focus,\n    .navbar.is-info .navbar-brand .navbar-link:hover,\n    .navbar.is-info .navbar-brand .navbar-link.is-active {\n      background-color: #118fe4;\n      color: #fff; }\n    .navbar.is-info .navbar-brand .navbar-link::after {\n      border-color: #fff; }\n    .navbar.is-info .navbar-burger {\n      color: #fff; }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-info .navbar-start > .navbar-item,\n      .navbar.is-info .navbar-start .navbar-link,\n      .navbar.is-info .navbar-end > .navbar-item,\n      .navbar.is-info .navbar-end .navbar-link {\n        color: #fff; }\n      .navbar.is-info .navbar-start > a.navbar-item:focus, .navbar.is-info .navbar-start > a.navbar-item:hover, .navbar.is-info .navbar-start > a.navbar-item.is-active,\n      .navbar.is-info .navbar-start .navbar-link:focus,\n      .navbar.is-info .navbar-start .navbar-link:hover,\n      .navbar.is-info .navbar-start .navbar-link.is-active,\n      .navbar.is-info .navbar-end > a.navbar-item:focus,\n      .navbar.is-info .navbar-end > a.navbar-item:hover,\n      .navbar.is-info .navbar-end > a.navbar-item.is-active,\n      .navbar.is-info .navbar-end .navbar-link:focus,\n      .navbar.is-info .navbar-end .navbar-link:hover,\n      .navbar.is-info .navbar-end .navbar-link.is-active {\n        background-color: #118fe4;\n        color: #fff; }\n      .navbar.is-info .navbar-start .navbar-link::after,\n      .navbar.is-info .navbar-end .navbar-link::after {\n        border-color: #fff; }\n      .navbar.is-info .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-info .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-info .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: #118fe4;\n        color: #fff; }\n      .navbar.is-info .navbar-dropdown a.navbar-item.is-active {\n        background-color: #209cee;\n        color: #fff; } }\n  .navbar.is-success {\n    background-color: #15a632;\n    color: #fff; }\n    .navbar.is-success .navbar-brand > .navbar-item,\n    .navbar.is-success .navbar-brand .navbar-link {\n      color: #fff; }\n    .navbar.is-success .navbar-brand > a.navbar-item:focus, .navbar.is-success .navbar-brand > a.navbar-item:hover, .navbar.is-success .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-success .navbar-brand .navbar-link:focus,\n    .navbar.is-success .navbar-brand .navbar-link:hover,\n    .navbar.is-success .navbar-brand .navbar-link.is-active {\n      background-color: #128f2b;\n      color: #fff; }\n    .navbar.is-success .navbar-brand .navbar-link::after {\n      border-color: #fff; }\n    .navbar.is-success .navbar-burger {\n      color: #fff; }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-success .navbar-start > .navbar-item,\n      .navbar.is-success .navbar-start .navbar-link,\n      .navbar.is-success .navbar-end > .navbar-item,\n      .navbar.is-success .navbar-end .navbar-link {\n        color: #fff; }\n      .navbar.is-success .navbar-start > a.navbar-item:focus, .navbar.is-success .navbar-start > a.navbar-item:hover, .navbar.is-success .navbar-start > a.navbar-item.is-active,\n      .navbar.is-success .navbar-start .navbar-link:focus,\n      .navbar.is-success .navbar-start .navbar-link:hover,\n      .navbar.is-success .navbar-start .navbar-link.is-active,\n      .navbar.is-success .navbar-end > a.navbar-item:focus,\n      .navbar.is-success .navbar-end > a.navbar-item:hover,\n      .navbar.is-success .navbar-end > a.navbar-item.is-active,\n      .navbar.is-success .navbar-end .navbar-link:focus,\n      .navbar.is-success .navbar-end .navbar-link:hover,\n      .navbar.is-success .navbar-end .navbar-link.is-active {\n        background-color: #128f2b;\n        color: #fff; }\n      .navbar.is-success .navbar-start .navbar-link::after,\n      .navbar.is-success .navbar-end .navbar-link::after {\n        border-color: #fff; }\n      .navbar.is-success .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-success .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-success .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: #128f2b;\n        color: #fff; }\n      .navbar.is-success .navbar-dropdown a.navbar-item.is-active {\n        background-color: #15a632;\n        color: #fff; } }\n  .navbar.is-warning {\n    background-color: #e0b905;\n    color: rgba(0, 0, 0, 0.7); }\n    .navbar.is-warning .navbar-brand > .navbar-item,\n    .navbar.is-warning .navbar-brand .navbar-link {\n      color: rgba(0, 0, 0, 0.7); }\n    .navbar.is-warning .navbar-brand > a.navbar-item:focus, .navbar.is-warning .navbar-brand > a.navbar-item:hover, .navbar.is-warning .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-warning .navbar-brand .navbar-link:focus,\n    .navbar.is-warning .navbar-brand .navbar-link:hover,\n    .navbar.is-warning .navbar-brand .navbar-link.is-active {\n      background-color: #c7a404;\n      color: rgba(0, 0, 0, 0.7); }\n    .navbar.is-warning .navbar-brand .navbar-link::after {\n      border-color: rgba(0, 0, 0, 0.7); }\n    .navbar.is-warning .navbar-burger {\n      color: rgba(0, 0, 0, 0.7); }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-warning .navbar-start > .navbar-item,\n      .navbar.is-warning .navbar-start .navbar-link,\n      .navbar.is-warning .navbar-end > .navbar-item,\n      .navbar.is-warning .navbar-end .navbar-link {\n        color: rgba(0, 0, 0, 0.7); }\n      .navbar.is-warning .navbar-start > a.navbar-item:focus, .navbar.is-warning .navbar-start > a.navbar-item:hover, .navbar.is-warning .navbar-start > a.navbar-item.is-active,\n      .navbar.is-warning .navbar-start .navbar-link:focus,\n      .navbar.is-warning .navbar-start .navbar-link:hover,\n      .navbar.is-warning .navbar-start .navbar-link.is-active,\n      .navbar.is-warning .navbar-end > a.navbar-item:focus,\n      .navbar.is-warning .navbar-end > a.navbar-item:hover,\n      .navbar.is-warning .navbar-end > a.navbar-item.is-active,\n      .navbar.is-warning .navbar-end .navbar-link:focus,\n      .navbar.is-warning .navbar-end .navbar-link:hover,\n      .navbar.is-warning .navbar-end .navbar-link.is-active {\n        background-color: #c7a404;\n        color: rgba(0, 0, 0, 0.7); }\n      .navbar.is-warning .navbar-start .navbar-link::after,\n      .navbar.is-warning .navbar-end .navbar-link::after {\n        border-color: rgba(0, 0, 0, 0.7); }\n      .navbar.is-warning .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-warning .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-warning .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: #c7a404;\n        color: rgba(0, 0, 0, 0.7); }\n      .navbar.is-warning .navbar-dropdown a.navbar-item.is-active {\n        background-color: #e0b905;\n        color: rgba(0, 0, 0, 0.7); } }\n  .navbar.is-danger {\n    background-color: #d42535;\n    color: #fff; }\n    .navbar.is-danger .navbar-brand > .navbar-item,\n    .navbar.is-danger .navbar-brand .navbar-link {\n      color: #fff; }\n    .navbar.is-danger .navbar-brand > a.navbar-item:focus, .navbar.is-danger .navbar-brand > a.navbar-item:hover, .navbar.is-danger .navbar-brand > a.navbar-item.is-active,\n    .navbar.is-danger .navbar-brand .navbar-link:focus,\n    .navbar.is-danger .navbar-brand .navbar-link:hover,\n    .navbar.is-danger .navbar-brand .navbar-link.is-active {\n      background-color: #be2130;\n      color: #fff; }\n    .navbar.is-danger .navbar-brand .navbar-link::after {\n      border-color: #fff; }\n    .navbar.is-danger .navbar-burger {\n      color: #fff; }\n    @media screen and (min-width: 1024px) {\n      .navbar.is-danger .navbar-start > .navbar-item,\n      .navbar.is-danger .navbar-start .navbar-link,\n      .navbar.is-danger .navbar-end > .navbar-item,\n      .navbar.is-danger .navbar-end .navbar-link {\n        color: #fff; }\n      .navbar.is-danger .navbar-start > a.navbar-item:focus, .navbar.is-danger .navbar-start > a.navbar-item:hover, .navbar.is-danger .navbar-start > a.navbar-item.is-active,\n      .navbar.is-danger .navbar-start .navbar-link:focus,\n      .navbar.is-danger .navbar-start .navbar-link:hover,\n      .navbar.is-danger .navbar-start .navbar-link.is-active,\n      .navbar.is-danger .navbar-end > a.navbar-item:focus,\n      .navbar.is-danger .navbar-end > a.navbar-item:hover,\n      .navbar.is-danger .navbar-end > a.navbar-item.is-active,\n      .navbar.is-danger .navbar-end .navbar-link:focus,\n      .navbar.is-danger .navbar-end .navbar-link:hover,\n      .navbar.is-danger .navbar-end .navbar-link.is-active {\n        background-color: #be2130;\n        color: #fff; }\n      .navbar.is-danger .navbar-start .navbar-link::after,\n      .navbar.is-danger .navbar-end .navbar-link::after {\n        border-color: #fff; }\n      .navbar.is-danger .navbar-item.has-dropdown:focus .navbar-link,\n      .navbar.is-danger .navbar-item.has-dropdown:hover .navbar-link,\n      .navbar.is-danger .navbar-item.has-dropdown.is-active .navbar-link {\n        background-color: #be2130;\n        color: #fff; }\n      .navbar.is-danger .navbar-dropdown a.navbar-item.is-active {\n        background-color: #d42535;\n        color: #fff; } }\n  .navbar > .container {\n    align-items: stretch;\n    display: flex;\n    min-height: 3.25rem;\n    width: 100%; }\n  .navbar.has-shadow {\n    box-shadow: 0 2px 0 0 whitesmoke; }\n  .navbar.is-fixed-bottom, .navbar.is-fixed-top {\n    left: 0;\n    position: fixed;\n    right: 0;\n    z-index: 30; }\n  .navbar.is-fixed-bottom {\n    bottom: 0; }\n    .navbar.is-fixed-bottom.has-shadow {\n      box-shadow: 0 -2px 0 0 whitesmoke; }\n  .navbar.is-fixed-top {\n    top: 0; }\n\nhtml.has-navbar-fixed-top,\nbody.has-navbar-fixed-top {\n  padding-top: 3.25rem; }\n\nhtml.has-navbar-fixed-bottom,\nbody.has-navbar-fixed-bottom {\n  padding-bottom: 3.25rem; }\n\n.navbar-brand,\n.navbar-tabs {\n  align-items: stretch;\n  display: flex;\n  flex-shrink: 0;\n  min-height: 3.25rem; }\n\n.navbar-brand a.navbar-item:focus, .navbar-brand a.navbar-item:hover {\n  background-color: transparent; }\n\n.navbar-tabs {\n  -webkit-overflow-scrolling: touch;\n  max-width: 100vw;\n  overflow-x: auto;\n  overflow-y: hidden; }\n\n.navbar-burger {\n  color: #4a4a4a;\n  cursor: pointer;\n  display: block;\n  height: 3.25rem;\n  position: relative;\n  width: 3.25rem;\n  margin-left: auto; }\n  .navbar-burger span {\n    background-color: currentColor;\n    display: block;\n    height: 1px;\n    left: calc(50% - 8px);\n    position: absolute;\n    transform-origin: center;\n    transition-duration: 86ms;\n    transition-property: background-color, opacity, transform;\n    transition-timing-function: ease-out;\n    width: 16px; }\n    .navbar-burger span:nth-child(1) {\n      top: calc(50% - 6px); }\n    .navbar-burger span:nth-child(2) {\n      top: calc(50% - 1px); }\n    .navbar-burger span:nth-child(3) {\n      top: calc(50% + 4px); }\n  .navbar-burger:hover {\n    background-color: rgba(0, 0, 0, 0.05); }\n  .navbar-burger.is-active span:nth-child(1) {\n    transform: translateY(5px) rotate(45deg); }\n  .navbar-burger.is-active span:nth-child(2) {\n    opacity: 0; }\n  .navbar-burger.is-active span:nth-child(3) {\n    transform: translateY(-5px) rotate(-45deg); }\n\n.navbar-menu {\n  display: none; }\n\n.navbar-item,\n.navbar-link {\n  color: #4a4a4a;\n  display: block;\n  line-height: 1.5;\n  padding: 0.5rem 0.75rem;\n  position: relative; }\n  .navbar-item .icon:only-child,\n  .navbar-link .icon:only-child {\n    margin-left: -0.25rem;\n    margin-right: -0.25rem; }\n\na.navbar-item,\n.navbar-link {\n  cursor: pointer; }\n  a.navbar-item:focus, a.navbar-item:focus-within, a.navbar-item:hover, a.navbar-item.is-active,\n  .navbar-link:focus,\n  .navbar-link:focus-within,\n  .navbar-link:hover,\n  .navbar-link.is-active {\n    background-color: #fafafa;\n    color: #2831c5; }\n\n.navbar-item {\n  display: block;\n  flex-grow: 0;\n  flex-shrink: 0; }\n  .navbar-item img {\n    max-height: 1.75rem; }\n  .navbar-item.has-dropdown {\n    padding: 0; }\n  .navbar-item.is-expanded {\n    flex-grow: 1;\n    flex-shrink: 1; }\n  .navbar-item.is-tab {\n    border-bottom: 1px solid transparent;\n    min-height: 3.25rem;\n    padding-bottom: calc(0.5rem - 1px); }\n    .navbar-item.is-tab:focus, .navbar-item.is-tab:hover {\n      background-color: transparent;\n      border-bottom-color: #2831c5; }\n    .navbar-item.is-tab.is-active {\n      background-color: transparent;\n      border-bottom-color: #2831c5;\n      border-bottom-style: solid;\n      border-bottom-width: 3px;\n      color: #2831c5;\n      padding-bottom: calc(0.5rem - 3px); }\n\n.navbar-content {\n  flex-grow: 1;\n  flex-shrink: 1; }\n\n.navbar-link:not(.is-arrowless) {\n  padding-right: 2.5em; }\n  .navbar-link:not(.is-arrowless)::after {\n    border-color: #2831c5;\n    margin-top: -0.375em;\n    right: 1.125em; }\n\n.navbar-dropdown {\n  font-size: 0.875rem;\n  padding-bottom: 0.5rem;\n  padding-top: 0.5rem; }\n  .navbar-dropdown .navbar-item {\n    padding-left: 1.5rem;\n    padding-right: 1.5rem; }\n\n.navbar-divider {\n  background-color: whitesmoke;\n  border: none;\n  display: none;\n  height: 2px;\n  margin: 0.5rem 0; }\n\n@media screen and (max-width: 1023px) {\n  .navbar > .container {\n    display: block; }\n  .navbar-brand .navbar-item,\n  .navbar-tabs .navbar-item {\n    align-items: center;\n    display: flex; }\n  .navbar-link::after {\n    display: none; }\n  .navbar-menu {\n    background-color: white;\n    box-shadow: 0 8px 16px rgba(10, 10, 10, 0.1);\n    padding: 0.5rem 0; }\n    .navbar-menu.is-active {\n      display: block; }\n  .navbar.is-fixed-bottom-touch, .navbar.is-fixed-top-touch {\n    left: 0;\n    position: fixed;\n    right: 0;\n    z-index: 30; }\n  .navbar.is-fixed-bottom-touch {\n    bottom: 0; }\n    .navbar.is-fixed-bottom-touch.has-shadow {\n      box-shadow: 0 -2px 3px rgba(10, 10, 10, 0.1); }\n  .navbar.is-fixed-top-touch {\n    top: 0; }\n  .navbar.is-fixed-top .navbar-menu, .navbar.is-fixed-top-touch .navbar-menu {\n    -webkit-overflow-scrolling: touch;\n    max-height: calc(100vh - 3.25rem);\n    overflow: auto; }\n  html.has-navbar-fixed-top-touch,\n  body.has-navbar-fixed-top-touch {\n    padding-top: 3.25rem; }\n  html.has-navbar-fixed-bottom-touch,\n  body.has-navbar-fixed-bottom-touch {\n    padding-bottom: 3.25rem; } }\n\n@media screen and (min-width: 1024px) {\n  .navbar,\n  .navbar-menu,\n  .navbar-start,\n  .navbar-end {\n    align-items: stretch;\n    display: flex; }\n  .navbar {\n    min-height: 3.25rem; }\n    .navbar.is-spaced {\n      padding: 1rem 2rem; }\n      .navbar.is-spaced .navbar-start,\n      .navbar.is-spaced .navbar-end {\n        align-items: center; }\n      .navbar.is-spaced a.navbar-item,\n      .navbar.is-spaced .navbar-link {\n        border-radius: 4px; }\n    .navbar.is-transparent a.navbar-item:focus, .navbar.is-transparent a.navbar-item:hover, .navbar.is-transparent a.navbar-item.is-active,\n    .navbar.is-transparent .navbar-link:focus,\n    .navbar.is-transparent .navbar-link:hover,\n    .navbar.is-transparent .navbar-link.is-active {\n      background-color: transparent !important; }\n    .navbar.is-transparent .navbar-item.has-dropdown.is-active .navbar-link, .navbar.is-transparent .navbar-item.has-dropdown.is-hoverable:focus .navbar-link, .navbar.is-transparent .navbar-item.has-dropdown.is-hoverable:focus-within .navbar-link, .navbar.is-transparent .navbar-item.has-dropdown.is-hoverable:hover .navbar-link {\n      background-color: transparent !important; }\n    .navbar.is-transparent .navbar-dropdown a.navbar-item:focus, .navbar.is-transparent .navbar-dropdown a.navbar-item:hover {\n      background-color: whitesmoke;\n      color: #0a0a0a; }\n    .navbar.is-transparent .navbar-dropdown a.navbar-item.is-active {\n      background-color: whitesmoke;\n      color: #2831c5; }\n  .navbar-burger {\n    display: none; }\n  .navbar-item,\n  .navbar-link {\n    align-items: center;\n    display: flex; }\n  .navbar-item {\n    display: flex; }\n    .navbar-item.has-dropdown {\n      align-items: stretch; }\n    .navbar-item.has-dropdown-up .navbar-link::after {\n      transform: rotate(135deg) translate(0.25em, -0.25em); }\n    .navbar-item.has-dropdown-up .navbar-dropdown {\n      border-bottom: 2px solid #dbdbdb;\n      border-radius: 6px 6px 0 0;\n      border-top: none;\n      bottom: 100%;\n      box-shadow: 0 -8px 8px rgba(10, 10, 10, 0.1);\n      top: auto; }\n    .navbar-item.is-active .navbar-dropdown, .navbar-item.is-hoverable:focus .navbar-dropdown, .navbar-item.is-hoverable:focus-within .navbar-dropdown, .navbar-item.is-hoverable:hover .navbar-dropdown {\n      display: block; }\n      .navbar.is-spaced .navbar-item.is-active .navbar-dropdown, .navbar-item.is-active .navbar-dropdown.is-boxed, .navbar.is-spaced .navbar-item.is-hoverable:focus .navbar-dropdown, .navbar-item.is-hoverable:focus .navbar-dropdown.is-boxed, .navbar.is-spaced .navbar-item.is-hoverable:focus-within .navbar-dropdown, .navbar-item.is-hoverable:focus-within .navbar-dropdown.is-boxed, .navbar.is-spaced .navbar-item.is-hoverable:hover .navbar-dropdown, .navbar-item.is-hoverable:hover .navbar-dropdown.is-boxed {\n        opacity: 1;\n        pointer-events: auto;\n        transform: translateY(0); }\n  .navbar-menu {\n    flex-grow: 1;\n    flex-shrink: 0; }\n  .navbar-start {\n    justify-content: flex-start;\n    margin-right: auto; }\n  .navbar-end {\n    justify-content: flex-end;\n    margin-left: auto; }\n  .navbar-dropdown {\n    background-color: white;\n    border-bottom-left-radius: 6px;\n    border-bottom-right-radius: 6px;\n    border-top: 2px solid #dbdbdb;\n    box-shadow: 0 8px 8px rgba(10, 10, 10, 0.1);\n    display: none;\n    font-size: 0.875rem;\n    left: 0;\n    min-width: 100%;\n    position: absolute;\n    top: 100%;\n    z-index: 20; }\n    .navbar-dropdown .navbar-item {\n      padding: 0.375rem 1rem;\n      white-space: nowrap; }\n    .navbar-dropdown a.navbar-item {\n      padding-right: 3rem; }\n      .navbar-dropdown a.navbar-item:focus, .navbar-dropdown a.navbar-item:hover {\n        background-color: whitesmoke;\n        color: #0a0a0a; }\n      .navbar-dropdown a.navbar-item.is-active {\n        background-color: whitesmoke;\n        color: #2831c5; }\n    .navbar.is-spaced .navbar-dropdown, .navbar-dropdown.is-boxed {\n      border-radius: 6px;\n      border-top: none;\n      box-shadow: 0 8px 8px rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.1);\n      display: block;\n      opacity: 0;\n      pointer-events: none;\n      top: calc(100% + (-4px));\n      transform: translateY(-5px);\n      transition-duration: 86ms;\n      transition-property: opacity, transform; }\n    .navbar-dropdown.is-right {\n      left: auto;\n      right: 0; }\n  .navbar-divider {\n    display: block; }\n  .navbar > .container .navbar-brand,\n  .container > .navbar .navbar-brand {\n    margin-left: -.75rem; }\n  .navbar > .container .navbar-menu,\n  .container > .navbar .navbar-menu {\n    margin-right: -.75rem; }\n  .navbar.is-fixed-bottom-desktop, .navbar.is-fixed-top-desktop {\n    left: 0;\n    position: fixed;\n    right: 0;\n    z-index: 30; }\n  .navbar.is-fixed-bottom-desktop {\n    bottom: 0; }\n    .navbar.is-fixed-bottom-desktop.has-shadow {\n      box-shadow: 0 -2px 3px rgba(10, 10, 10, 0.1); }\n  .navbar.is-fixed-top-desktop {\n    top: 0; }\n  html.has-navbar-fixed-top-desktop,\n  body.has-navbar-fixed-top-desktop {\n    padding-top: 3.25rem; }\n  html.has-navbar-fixed-bottom-desktop,\n  body.has-navbar-fixed-bottom-desktop {\n    padding-bottom: 3.25rem; }\n  html.has-spaced-navbar-fixed-top,\n  body.has-spaced-navbar-fixed-top {\n    padding-top: 5.25rem; }\n  html.has-spaced-navbar-fixed-bottom,\n  body.has-spaced-navbar-fixed-bottom {\n    padding-bottom: 5.25rem; }\n  a.navbar-item.is-active,\n  .navbar-link.is-active {\n    color: #0a0a0a; }\n  a.navbar-item.is-active:not(:focus):not(:hover),\n  .navbar-link.is-active:not(:focus):not(:hover) {\n    background-color: transparent; }\n  .navbar-item.has-dropdown:focus .navbar-link, .navbar-item.has-dropdown:hover .navbar-link, .navbar-item.has-dropdown.is-active .navbar-link {\n    background-color: #fafafa; } }\n\n.hero.is-fullheight-with-navbar {\n  min-height: calc(100vh - 3.25rem); }\n\n.hero {\n  align-items: stretch;\n  display: flex;\n  flex-direction: column;\n  justify-content: space-between; }\n  .hero .navbar {\n    background: none; }\n  .hero .tabs ul {\n    border-bottom: none; }\n  .hero.is-white {\n    background-color: white;\n    color: #0a0a0a; }\n    .hero.is-white a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-white strong {\n      color: inherit; }\n    .hero.is-white .title {\n      color: #0a0a0a; }\n    .hero.is-white .subtitle {\n      color: rgba(10, 10, 10, 0.9); }\n      .hero.is-white .subtitle a:not(.button),\n      .hero.is-white .subtitle strong {\n        color: #0a0a0a; }\n    @media screen and (max-width: 1023px) {\n      .hero.is-white .navbar-menu {\n        background-color: white; } }\n    .hero.is-white .navbar-item,\n    .hero.is-white .navbar-link {\n      color: rgba(10, 10, 10, 0.7); }\n    .hero.is-white a.navbar-item:hover, .hero.is-white a.navbar-item.is-active,\n    .hero.is-white .navbar-link:hover,\n    .hero.is-white .navbar-link.is-active {\n      background-color: #f2f2f2;\n      color: #0a0a0a; }\n    .hero.is-white .tabs a {\n      color: #0a0a0a;\n      opacity: 0.9; }\n      .hero.is-white .tabs a:hover {\n        opacity: 1; }\n    .hero.is-white .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-white .tabs.is-boxed a, .hero.is-white .tabs.is-toggle a {\n      color: #0a0a0a; }\n      .hero.is-white .tabs.is-boxed a:hover, .hero.is-white .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-white .tabs.is-boxed li.is-active a, .hero.is-white .tabs.is-boxed li.is-active a:hover, .hero.is-white .tabs.is-toggle li.is-active a, .hero.is-white .tabs.is-toggle li.is-active a:hover {\n      background-color: #0a0a0a;\n      border-color: #0a0a0a;\n      color: white; }\n    .hero.is-white.is-bold {\n      background-image: linear-gradient(141deg, #e6e6e6 0%, white 71%, white 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-white.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, #e6e6e6 0%, white 71%, white 100%); } }\n  .hero.is-black {\n    background-color: #0a0a0a;\n    color: white; }\n    .hero.is-black a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-black strong {\n      color: inherit; }\n    .hero.is-black .title {\n      color: white; }\n    .hero.is-black .subtitle {\n      color: rgba(255, 255, 255, 0.9); }\n      .hero.is-black .subtitle a:not(.button),\n      .hero.is-black .subtitle strong {\n        color: white; }\n    @media screen and (max-width: 1023px) {\n      .hero.is-black .navbar-menu {\n        background-color: #0a0a0a; } }\n    .hero.is-black .navbar-item,\n    .hero.is-black .navbar-link {\n      color: rgba(255, 255, 255, 0.7); }\n    .hero.is-black a.navbar-item:hover, .hero.is-black a.navbar-item.is-active,\n    .hero.is-black .navbar-link:hover,\n    .hero.is-black .navbar-link.is-active {\n      background-color: black;\n      color: white; }\n    .hero.is-black .tabs a {\n      color: white;\n      opacity: 0.9; }\n      .hero.is-black .tabs a:hover {\n        opacity: 1; }\n    .hero.is-black .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-black .tabs.is-boxed a, .hero.is-black .tabs.is-toggle a {\n      color: white; }\n      .hero.is-black .tabs.is-boxed a:hover, .hero.is-black .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-black .tabs.is-boxed li.is-active a, .hero.is-black .tabs.is-boxed li.is-active a:hover, .hero.is-black .tabs.is-toggle li.is-active a, .hero.is-black .tabs.is-toggle li.is-active a:hover {\n      background-color: white;\n      border-color: white;\n      color: #0a0a0a; }\n    .hero.is-black.is-bold {\n      background-image: linear-gradient(141deg, black 0%, #0a0a0a 71%, #181616 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-black.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, black 0%, #0a0a0a 71%, #181616 100%); } }\n  .hero.is-light {\n    background-color: whitesmoke;\n    color: #363636; }\n    .hero.is-light a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-light strong {\n      color: inherit; }\n    .hero.is-light .title {\n      color: #363636; }\n    .hero.is-light .subtitle {\n      color: rgba(54, 54, 54, 0.9); }\n      .hero.is-light .subtitle a:not(.button),\n      .hero.is-light .subtitle strong {\n        color: #363636; }\n    @media screen and (max-width: 1023px) {\n      .hero.is-light .navbar-menu {\n        background-color: whitesmoke; } }\n    .hero.is-light .navbar-item,\n    .hero.is-light .navbar-link {\n      color: rgba(54, 54, 54, 0.7); }\n    .hero.is-light a.navbar-item:hover, .hero.is-light a.navbar-item.is-active,\n    .hero.is-light .navbar-link:hover,\n    .hero.is-light .navbar-link.is-active {\n      background-color: #e8e8e8;\n      color: #363636; }\n    .hero.is-light .tabs a {\n      color: #363636;\n      opacity: 0.9; }\n      .hero.is-light .tabs a:hover {\n        opacity: 1; }\n    .hero.is-light .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-light .tabs.is-boxed a, .hero.is-light .tabs.is-toggle a {\n      color: #363636; }\n      .hero.is-light .tabs.is-boxed a:hover, .hero.is-light .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-light .tabs.is-boxed li.is-active a, .hero.is-light .tabs.is-boxed li.is-active a:hover, .hero.is-light .tabs.is-toggle li.is-active a, .hero.is-light .tabs.is-toggle li.is-active a:hover {\n      background-color: #363636;\n      border-color: #363636;\n      color: whitesmoke; }\n    .hero.is-light.is-bold {\n      background-image: linear-gradient(141deg, #dfd8d9 0%, whitesmoke 71%, white 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-light.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, #dfd8d9 0%, whitesmoke 71%, white 100%); } }\n  .hero.is-dark {\n    background-color: #363636;\n    color: whitesmoke; }\n    .hero.is-dark a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-dark strong {\n      color: inherit; }\n    .hero.is-dark .title {\n      color: whitesmoke; }\n    .hero.is-dark .subtitle {\n      color: rgba(245, 245, 245, 0.9); }\n      .hero.is-dark .subtitle a:not(.button),\n      .hero.is-dark .subtitle strong {\n        color: whitesmoke; }\n    @media screen and (max-width: 1023px) {\n      .hero.is-dark .navbar-menu {\n        background-color: #363636; } }\n    .hero.is-dark .navbar-item,\n    .hero.is-dark .navbar-link {\n      color: rgba(245, 245, 245, 0.7); }\n    .hero.is-dark a.navbar-item:hover, .hero.is-dark a.navbar-item.is-active,\n    .hero.is-dark .navbar-link:hover,\n    .hero.is-dark .navbar-link.is-active {\n      background-color: #292929;\n      color: whitesmoke; }\n    .hero.is-dark .tabs a {\n      color: whitesmoke;\n      opacity: 0.9; }\n      .hero.is-dark .tabs a:hover {\n        opacity: 1; }\n    .hero.is-dark .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-dark .tabs.is-boxed a, .hero.is-dark .tabs.is-toggle a {\n      color: whitesmoke; }\n      .hero.is-dark .tabs.is-boxed a:hover, .hero.is-dark .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-dark .tabs.is-boxed li.is-active a, .hero.is-dark .tabs.is-boxed li.is-active a:hover, .hero.is-dark .tabs.is-toggle li.is-active a, .hero.is-dark .tabs.is-toggle li.is-active a:hover {\n      background-color: whitesmoke;\n      border-color: whitesmoke;\n      color: #363636; }\n    .hero.is-dark.is-bold {\n      background-image: linear-gradient(141deg, #1f191a 0%, #363636 71%, #46403f 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-dark.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, #1f191a 0%, #363636 71%, #46403f 100%); } }\n  .hero.is-primary {\n    background-color: #44a3d4;\n    color: #fff; }\n    .hero.is-primary a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-primary strong {\n      color: inherit; }\n    .hero.is-primary .title {\n      color: #fff; }\n    .hero.is-primary .subtitle {\n      color: rgba(255, 255, 255, 0.9); }\n      .hero.is-primary .subtitle a:not(.button),\n      .hero.is-primary .subtitle strong {\n        color: #fff; }\n    @media screen and (max-width: 1023px) {\n      .hero.is-primary .navbar-menu {\n        background-color: #44a3d4; } }\n    .hero.is-primary .navbar-item,\n    .hero.is-primary .navbar-link {\n      color: rgba(255, 255, 255, 0.7); }\n    .hero.is-primary a.navbar-item:hover, .hero.is-primary a.navbar-item.is-active,\n    .hero.is-primary .navbar-link:hover,\n    .hero.is-primary .navbar-link.is-active {\n      background-color: #3099cf;\n      color: #fff; }\n    .hero.is-primary .tabs a {\n      color: #fff;\n      opacity: 0.9; }\n      .hero.is-primary .tabs a:hover {\n        opacity: 1; }\n    .hero.is-primary .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-primary .tabs.is-boxed a, .hero.is-primary .tabs.is-toggle a {\n      color: #fff; }\n      .hero.is-primary .tabs.is-boxed a:hover, .hero.is-primary .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-primary .tabs.is-boxed li.is-active a, .hero.is-primary .tabs.is-boxed li.is-active a:hover, .hero.is-primary .tabs.is-toggle li.is-active a, .hero.is-primary .tabs.is-toggle li.is-active a:hover {\n      background-color: #fff;\n      border-color: #fff;\n      color: #44a3d4; }\n    .hero.is-primary.is-bold {\n      background-image: linear-gradient(141deg, #1fa9c6 0%, #44a3d4 71%, #5498de 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-primary.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, #1fa9c6 0%, #44a3d4 71%, #5498de 100%); } }\n  .hero.is-link {\n    background-color: #2831c5;\n    color: #fff; }\n    .hero.is-link a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-link strong {\n      color: inherit; }\n    .hero.is-link .title {\n      color: #fff; }\n    .hero.is-link .subtitle {\n      color: rgba(255, 255, 255, 0.9); }\n      .hero.is-link .subtitle a:not(.button),\n      .hero.is-link .subtitle strong {\n        color: #fff; }\n    @media screen and (max-width: 1023px) {\n      .hero.is-link .navbar-menu {\n        background-color: #2831c5; } }\n    .hero.is-link .navbar-item,\n    .hero.is-link .navbar-link {\n      color: rgba(255, 255, 255, 0.7); }\n    .hero.is-link a.navbar-item:hover, .hero.is-link a.navbar-item.is-active,\n    .hero.is-link .navbar-link:hover,\n    .hero.is-link .navbar-link.is-active {\n      background-color: #242cb0;\n      color: #fff; }\n    .hero.is-link .tabs a {\n      color: #fff;\n      opacity: 0.9; }\n      .hero.is-link .tabs a:hover {\n        opacity: 1; }\n    .hero.is-link .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-link .tabs.is-boxed a, .hero.is-link .tabs.is-toggle a {\n      color: #fff; }\n      .hero.is-link .tabs.is-boxed a:hover, .hero.is-link .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-link .tabs.is-boxed li.is-active a, .hero.is-link .tabs.is-boxed li.is-active a:hover, .hero.is-link .tabs.is-toggle li.is-active a, .hero.is-link .tabs.is-toggle li.is-active a:hover {\n      background-color: #fff;\n      border-color: #fff;\n      color: #2831c5; }\n    .hero.is-link.is-bold {\n      background-image: linear-gradient(141deg, #1636a4 0%, #2831c5 71%, #3e2bdb 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-link.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, #1636a4 0%, #2831c5 71%, #3e2bdb 100%); } }\n  .hero.is-info {\n    background-color: #209cee;\n    color: #fff; }\n    .hero.is-info a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-info strong {\n      color: inherit; }\n    .hero.is-info .title {\n      color: #fff; }\n    .hero.is-info .subtitle {\n      color: rgba(255, 255, 255, 0.9); }\n      .hero.is-info .subtitle a:not(.button),\n      .hero.is-info .subtitle strong {\n        color: #fff; }\n    @media screen and (max-width: 1023px) {\n      .hero.is-info .navbar-menu {\n        background-color: #209cee; } }\n    .hero.is-info .navbar-item,\n    .hero.is-info .navbar-link {\n      color: rgba(255, 255, 255, 0.7); }\n    .hero.is-info a.navbar-item:hover, .hero.is-info a.navbar-item.is-active,\n    .hero.is-info .navbar-link:hover,\n    .hero.is-info .navbar-link.is-active {\n      background-color: #118fe4;\n      color: #fff; }\n    .hero.is-info .tabs a {\n      color: #fff;\n      opacity: 0.9; }\n      .hero.is-info .tabs a:hover {\n        opacity: 1; }\n    .hero.is-info .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-info .tabs.is-boxed a, .hero.is-info .tabs.is-toggle a {\n      color: #fff; }\n      .hero.is-info .tabs.is-boxed a:hover, .hero.is-info .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-info .tabs.is-boxed li.is-active a, .hero.is-info .tabs.is-boxed li.is-active a:hover, .hero.is-info .tabs.is-toggle li.is-active a, .hero.is-info .tabs.is-toggle li.is-active a:hover {\n      background-color: #fff;\n      border-color: #fff;\n      color: #209cee; }\n    .hero.is-info.is-bold {\n      background-image: linear-gradient(141deg, #04a6d7 0%, #209cee 71%, #3287f5 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-info.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, #04a6d7 0%, #209cee 71%, #3287f5 100%); } }\n  .hero.is-success {\n    background-color: #15a632;\n    color: #fff; }\n    .hero.is-success a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-success strong {\n      color: inherit; }\n    .hero.is-success .title {\n      color: #fff; }\n    .hero.is-success .subtitle {\n      color: rgba(255, 255, 255, 0.9); }\n      .hero.is-success .subtitle a:not(.button),\n      .hero.is-success .subtitle strong {\n        color: #fff; }\n    @media screen and (max-width: 1023px) {\n      .hero.is-success .navbar-menu {\n        background-color: #15a632; } }\n    .hero.is-success .navbar-item,\n    .hero.is-success .navbar-link {\n      color: rgba(255, 255, 255, 0.7); }\n    .hero.is-success a.navbar-item:hover, .hero.is-success a.navbar-item.is-active,\n    .hero.is-success .navbar-link:hover,\n    .hero.is-success .navbar-link.is-active {\n      background-color: #128f2b;\n      color: #fff; }\n    .hero.is-success .tabs a {\n      color: #fff;\n      opacity: 0.9; }\n      .hero.is-success .tabs a:hover {\n        opacity: 1; }\n    .hero.is-success .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-success .tabs.is-boxed a, .hero.is-success .tabs.is-toggle a {\n      color: #fff; }\n      .hero.is-success .tabs.is-boxed a:hover, .hero.is-success .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-success .tabs.is-boxed li.is-active a, .hero.is-success .tabs.is-boxed li.is-active a:hover, .hero.is-success .tabs.is-toggle li.is-active a, .hero.is-success .tabs.is-toggle li.is-active a:hover {\n      background-color: #fff;\n      border-color: #fff;\n      color: #15a632; }\n    .hero.is-success.is-bold {\n      background-image: linear-gradient(141deg, #08800c 0%, #15a632 71%, #13c253 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-success.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, #08800c 0%, #15a632 71%, #13c253 100%); } }\n  .hero.is-warning {\n    background-color: #e0b905;\n    color: rgba(0, 0, 0, 0.7); }\n    .hero.is-warning a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-warning strong {\n      color: inherit; }\n    .hero.is-warning .title {\n      color: rgba(0, 0, 0, 0.7); }\n    .hero.is-warning .subtitle {\n      color: rgba(0, 0, 0, 0.9); }\n      .hero.is-warning .subtitle a:not(.button),\n      .hero.is-warning .subtitle strong {\n        color: rgba(0, 0, 0, 0.7); }\n    @media screen and (max-width: 1023px) {\n      .hero.is-warning .navbar-menu {\n        background-color: #e0b905; } }\n    .hero.is-warning .navbar-item,\n    .hero.is-warning .navbar-link {\n      color: rgba(0, 0, 0, 0.7); }\n    .hero.is-warning a.navbar-item:hover, .hero.is-warning a.navbar-item.is-active,\n    .hero.is-warning .navbar-link:hover,\n    .hero.is-warning .navbar-link.is-active {\n      background-color: #c7a404;\n      color: rgba(0, 0, 0, 0.7); }\n    .hero.is-warning .tabs a {\n      color: rgba(0, 0, 0, 0.7);\n      opacity: 0.9; }\n      .hero.is-warning .tabs a:hover {\n        opacity: 1; }\n    .hero.is-warning .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-warning .tabs.is-boxed a, .hero.is-warning .tabs.is-toggle a {\n      color: rgba(0, 0, 0, 0.7); }\n      .hero.is-warning .tabs.is-boxed a:hover, .hero.is-warning .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-warning .tabs.is-boxed li.is-active a, .hero.is-warning .tabs.is-boxed li.is-active a:hover, .hero.is-warning .tabs.is-toggle li.is-active a, .hero.is-warning .tabs.is-toggle li.is-active a:hover {\n      background-color: rgba(0, 0, 0, 0.7);\n      border-color: rgba(0, 0, 0, 0.7);\n      color: #e0b905; }\n    .hero.is-warning.is-bold {\n      background-image: linear-gradient(141deg, #b27500 0%, #e0b905 71%, #fffc00 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-warning.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, #b27500 0%, #e0b905 71%, #fffc00 100%); } }\n  .hero.is-danger {\n    background-color: #d42535;\n    color: #fff; }\n    .hero.is-danger a:not(.button):not(.dropdown-item):not(.tag):not(.pagination-link.is-current),\n    .hero.is-danger strong {\n      color: inherit; }\n    .hero.is-danger .title {\n      color: #fff; }\n    .hero.is-danger .subtitle {\n      color: rgba(255, 255, 255, 0.9); }\n      .hero.is-danger .subtitle a:not(.button),\n      .hero.is-danger .subtitle strong {\n        color: #fff; }\n    @media screen and (max-width: 1023px) {\n      .hero.is-danger .navbar-menu {\n        background-color: #d42535; } }\n    .hero.is-danger .navbar-item,\n    .hero.is-danger .navbar-link {\n      color: rgba(255, 255, 255, 0.7); }\n    .hero.is-danger a.navbar-item:hover, .hero.is-danger a.navbar-item.is-active,\n    .hero.is-danger .navbar-link:hover,\n    .hero.is-danger .navbar-link.is-active {\n      background-color: #be2130;\n      color: #fff; }\n    .hero.is-danger .tabs a {\n      color: #fff;\n      opacity: 0.9; }\n      .hero.is-danger .tabs a:hover {\n        opacity: 1; }\n    .hero.is-danger .tabs li.is-active a {\n      opacity: 1; }\n    .hero.is-danger .tabs.is-boxed a, .hero.is-danger .tabs.is-toggle a {\n      color: #fff; }\n      .hero.is-danger .tabs.is-boxed a:hover, .hero.is-danger .tabs.is-toggle a:hover {\n        background-color: rgba(10, 10, 10, 0.1); }\n    .hero.is-danger .tabs.is-boxed li.is-active a, .hero.is-danger .tabs.is-boxed li.is-active a:hover, .hero.is-danger .tabs.is-toggle li.is-active a, .hero.is-danger .tabs.is-toggle li.is-active a:hover {\n      background-color: #fff;\n      border-color: #fff;\n      color: #d42535; }\n    .hero.is-danger.is-bold {\n      background-image: linear-gradient(141deg, #b2143d 0%, #d42535 71%, #e23e31 100%); }\n      @media screen and (max-width: 768px) {\n        .hero.is-danger.is-bold .navbar-menu {\n          background-image: linear-gradient(141deg, #b2143d 0%, #d42535 71%, #e23e31 100%); } }\n  .hero.is-small .hero-body {\n    padding-bottom: 1.5rem;\n    padding-top: 1.5rem; }\n  @media screen and (min-width: 769px), print {\n    .hero.is-medium .hero-body {\n      padding-bottom: 9rem;\n      padding-top: 9rem; } }\n  @media screen and (min-width: 769px), print {\n    .hero.is-large .hero-body {\n      padding-bottom: 18rem;\n      padding-top: 18rem; } }\n  .hero.is-halfheight .hero-body, .hero.is-fullheight .hero-body, .hero.is-fullheight-with-navbar .hero-body {\n    align-items: center;\n    display: flex; }\n    .hero.is-halfheight .hero-body > .container, .hero.is-fullheight .hero-body > .container, .hero.is-fullheight-with-navbar .hero-body > .container {\n      flex-grow: 1;\n      flex-shrink: 1; }\n  .hero.is-halfheight {\n    min-height: 50vh; }\n  .hero.is-fullheight {\n    min-height: 100vh; }\n\n.hero-video {\n  overflow: hidden; }\n  .hero-video video {\n    left: 50%;\n    min-height: 100%;\n    min-width: 100%;\n    position: absolute;\n    top: 50%;\n    transform: translate3d(-50%, -50%, 0); }\n  .hero-video.is-transparent {\n    opacity: 0.3; }\n  @media screen and (max-width: 768px) {\n    .hero-video {\n      display: none; } }\n\n.hero-buttons {\n  margin-top: 1.5rem; }\n  @media screen and (max-width: 768px) {\n    .hero-buttons .button {\n      display: flex; }\n      .hero-buttons .button:not(:last-child) {\n        margin-bottom: 0.75rem; } }\n  @media screen and (min-width: 769px), print {\n    .hero-buttons {\n      display: flex;\n      justify-content: center; }\n      .hero-buttons .button:not(:last-child) {\n        margin-right: 1.5rem; } }\n\n.hero-head,\n.hero-foot {\n  flex-grow: 0;\n  flex-shrink: 0; }\n\n.hero-body {\n  flex-grow: 1;\n  flex-shrink: 0;\n  padding: 3rem 1.5rem; }\n\n.section {\n  padding: 3rem 1.5rem; }\n  @media screen and (min-width: 1024px) {\n    .section.is-medium {\n      padding: 9rem 1.5rem; }\n    .section.is-large {\n      padding: 18rem 1.5rem; } }\n", ""]);
+
+// exports
+
+
+/***/ }),
+
+/***/ "./node_modules/css-loader/index.js?!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Admin.vue?vue&type=style&index=0&lang=css&":
+/*!***********************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/css-loader??ref--6-1!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src??ref--6-2!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/components/Admin.vue?vue&type=style&index=0&lang=css& ***!
+  \***********************************************************************************************************************************************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/lib/css-base.js */ "./node_modules/css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, "\n.position{\n  margin: 30px auto;\n}\n", ""]);
 
 // exports
 
@@ -6046,6 +6121,36 @@ process.umask = function() { return 0; };
 }(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
 
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js"), __webpack_require__(/*! ./../process/browser.js */ "./node_modules/process/browser.js")))
+
+/***/ }),
+
+/***/ "./node_modules/style-loader/index.js!./node_modules/css-loader/index.js?!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Admin.vue?vue&type=style&index=0&lang=css&":
+/*!***************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/style-loader!./node_modules/css-loader??ref--6-1!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src??ref--6-2!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/components/Admin.vue?vue&type=style&index=0&lang=css& ***!
+  \***************************************************************************************************************************************************************************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var content = __webpack_require__(/*! !../../../node_modules/css-loader??ref--6-1!../../../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../../../node_modules/postcss-loader/src??ref--6-2!../../../node_modules/vue-loader/lib??vue-loader-options!./Admin.vue?vue&type=style&index=0&lang=css& */ "./node_modules/css-loader/index.js?!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Admin.vue?vue&type=style&index=0&lang=css&");
+
+if(typeof content === 'string') content = [[module.i, content, '']];
+
+var transform;
+var insertInto;
+
+
+
+var options = {"hmr":true}
+
+options.transform = transform
+options.insertInto = undefined;
+
+var update = __webpack_require__(/*! ../../../node_modules/style-loader/lib/addStyles.js */ "./node_modules/style-loader/lib/addStyles.js")(content, options);
+
+if(content.locals) module.exports = content.locals;
+
+if(false) {}
 
 /***/ }),
 
@@ -23734,15 +23839,11 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c("div", { staticClass: "container" }, [
-    _vm._m(0),
-    _vm._v(" "),
-    _c("div", { staticClass: "card card-default" }, [
-      _c("div", { staticClass: "card-header" }, [
-        _vm._v("Liste des utilisateurs")
-      ]),
+  return _c("div", { staticClass: "container position" }, [
+    _c("div", { staticClass: "card" }, [
+      _vm._m(0),
       _vm._v(" "),
-      _c("div", { staticClass: "card-body" }, [_c("userList")], 1)
+      _c("div", { staticClass: "card-content" }, [_c("userList")], 1)
     ])
   ])
 }
@@ -23751,13 +23852,9 @@ var staticRenderFns = [
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "card card-default" }, [
-      _c("div", { staticClass: "card-header" }, [_vm._v("Admin Dashboard")]),
-      _vm._v(" "),
-      _c("div", { staticClass: "card-body" }, [
-        _vm._v(
-          "\n            Bienvenue sur votre dashboard administrateur\n        "
-        )
+    return _c("div", { staticClass: "card-header" }, [
+      _c("p", { staticClass: "card-header-title" }, [
+        _vm._v("\n            Admin Dashboard\n          ")
       ])
     ])
   }
@@ -23847,7 +23944,7 @@ var render = function() {
   var _c = _vm._self._c || _h
   return _c("div", { staticClass: "section" }, [
     _c("div", { staticClass: "container" }, [
-      _vm.error && !_vm.success
+      _vm.has_error && !_vm.success
         ? _c("div", { staticClass: "notification is-danger" }, [
             _c("p", [_vm._v("There was an error, unable to create property.")])
           ])
@@ -23991,6 +24088,40 @@ var render = function() {
                         ]),
                         _vm._v(" "),
                         _c("div", { staticClass: "field" }, [
+                          _c("label", { attrs: { for: "name" } }, [
+                            _vm._v("Location:")
+                          ]),
+                          _vm._v(" "),
+                          _c("div", { staticClass: "control" }, [
+                            _c("input", {
+                              directives: [
+                                {
+                                  name: "model",
+                                  rawName: "v-model",
+                                  value: _vm.location,
+                                  expression: "location"
+                                }
+                              ],
+                              staticClass: "input",
+                              attrs: {
+                                type: "text",
+                                id: "location",
+                                required: ""
+                              },
+                              domProps: { value: _vm.location },
+                              on: {
+                                input: function($event) {
+                                  if ($event.target.composing) {
+                                    return
+                                  }
+                                  _vm.location = $event.target.value
+                                }
+                              }
+                            })
+                          ])
+                        ]),
+                        _vm._v(" "),
+                        _c("div", { staticClass: "field" }, [
                           _c("label", { attrs: { for: "description" } }, [
                             _vm._v("Description:")
                           ]),
@@ -24131,7 +24262,11 @@ var render = function() {
                             ),
                             _vm._v(" "),
                             _c("img", {
-                              staticStyle: { display: "flex" },
+                              staticStyle: {
+                                display: "flex",
+                                "object-fit": "cover",
+                                "max-height": "100%"
+                              },
                               attrs: { src: item.img }
                             })
                           ]
@@ -24847,17 +24982,15 @@ var render = function() {
         _c("div", { staticClass: "container box" }, [
           _c("div", { staticClass: "columns" }, [
             _c("div", { staticClass: "column" }, [
-              _c("figure", { staticClass: "image" }, [
-                _c("img", {
-                  attrs: {
-                    src:
-                      "/images/" +
-                      _vm.selectedObject.filename +
-                      "/" +
-                      _vm.selectedObject.cover
-                  }
-                })
-              ])
+              _c("img", {
+                attrs: {
+                  src:
+                    "/images/" +
+                    _vm.selectedObject.filename +
+                    "/" +
+                    _vm.selectedObject.cover
+                }
+              })
             ]),
             _vm._v(" "),
             _c("div", { staticClass: "column" }, [
@@ -24876,11 +25009,9 @@ var render = function() {
                 ]
               ),
               _c("br"),
-              _c("br"),
-              _c("br"),
               _vm._v(" "),
               _c("div", { staticClass: "has-text-left" }, [
-                _c("span", { staticClass: "is-size-5 is-family-primary" }, [
+                _c("span", { staticClass: "is-size-6 is-family-primary" }, [
                   _c("br"),
                   _c("br"),
                   _vm._v(
@@ -24896,65 +25027,127 @@ var render = function() {
                   ),
                   _c("br"),
                   _vm._v(
-                    "\r\n                  Description: " +
+                    "\r\n                  Description:\r\n                  "
+                  ),
+                  _c("br"),
+                  _vm._v(
+                    " \r\n                  " +
                       _vm._s(_vm.selectedObject.description) +
                       "\r\n                  "
                   ),
+                  _c("br"),
+                  _vm._v(" "),
                   _c("br")
                 ])
               ]),
               _vm._v(" "),
-              _c("nav", { staticClass: "level is-mobile" }, [
-                _c("div", { staticClass: "level-item has-text-centered" }, [
-                  _c("div", [
-                    _c(
-                      "div",
-                      {
-                        staticClass: "button is-primary",
-                        on: { click: _vm.openReserve }
-                      },
-                      [_vm._v("Reserve")]
-                    )
-                  ])
-                ]),
-                _vm._v(" "),
-                _c("div", { staticClass: "level-item has-text-centered" }),
-                _vm._v(" "),
-                _c("div", { staticClass: "level-item has-text-centered" }),
-                _vm._v(" "),
-                _vm._m(0)
+              _c("div", [
+                _c(
+                  "div",
+                  {
+                    staticClass: "button is-medium is-primary",
+                    on: { click: _vm.openReserve }
+                  },
+                  [_vm._v("Reserve")]
+                )
               ])
             ])
-          ])
+          ]),
+          _vm._v(" "),
+          _c("span", [_vm._v("Pictures:")]),
+          _vm._v(" "),
+          _c(
+            "div",
+            { staticClass: "box" },
+            [
+              _c(
+                "grid-layout",
+                {
+                  attrs: {
+                    layout: _vm.pictures,
+                    "col-num": 4,
+                    "row-height": 150,
+                    "is-mirrored": false,
+                    "is-draggable": false,
+                    "is-resizable": false,
+                    "vertical-compact": true,
+                    margin: [10, 10],
+                    "use-css-transforms": true
+                  },
+                  on: {
+                    "update:layout": function($event) {
+                      _vm.pictures = $event
+                    }
+                  }
+                },
+                _vm._l(_vm.pictures, function(item) {
+                  return _c(
+                    "grid-item",
+                    {
+                      key: item.i,
+                      attrs: {
+                        x: item.x,
+                        y: item.y,
+                        w: item.w,
+                        h: item.h,
+                        i: item.i
+                      }
+                    },
+                    [
+                      _c("img", {
+                        staticStyle: { display: "flex" },
+                        attrs: { src: item.img },
+                        on: {
+                          click: function($event) {
+                            return _vm.openPicture(item)
+                          }
+                        }
+                      })
+                    ]
+                  )
+                }),
+                1
+              )
+            ],
+            1
+          )
         ])
       ]),
       _vm._v(" "),
       _vm.$auth.check()
         ? _c("reserveModul", {
-            attrs: { visible: _vm.openReservation },
+            attrs: {
+              unavailable: _vm.unavailableDates,
+              selectedObject: _vm.selectedObject,
+              visible: _vm.openReservation
+            },
             on: { closeReserve: _vm.closeReservation }
           })
-        : _vm._e()
+        : _vm._e(),
+      _vm._v(" "),
+      _c("div", { staticClass: "modal", attrs: { id: "pictureModal" } }, [
+        _c("div", {
+          staticClass: "modal-background",
+          on: { click: _vm.closePicture }
+        }),
+        _vm._v(" "),
+        _c("div", { staticClass: "modal-content" }, [
+          _c("p", { staticClass: "image is-4by3" }, [
+            _c("img", { attrs: { src: _vm.selectedPicture, alt: "" } })
+          ])
+        ]),
+        _vm._v(" "),
+        _c("button", {
+          staticClass: "modal-close is-large",
+          attrs: { "aria-label": "close" },
+          on: { click: _vm.closePicture }
+        })
+      ])
     ],
     1
   )
 }
-var staticRenderFns = [
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "level-item has-text-centered" }, [
-      _c("div", [
-        _c(
-          "p",
-          { staticClass: "is-size-6 is-family-primary has-text-weight-bold" },
-          [_vm._v("FAVORITE")]
-        )
-      ])
-    ])
-  }
-]
+var staticRenderFns = []
 render._withStripped = true
 
 
@@ -25022,7 +25215,9 @@ var render = function() {
                   _c("br"),
                   _c("br"),
                   _vm._v(
-                    "\n                Location:\n                Sarajevo\n              "
+                    "\n                Location:\n                " +
+                      _vm._s(_vm.item.location) +
+                      "\n              "
                   )
                 ])
               ]),
@@ -25088,89 +25283,40 @@ var render = function() {
           })
         ]),
         _vm._v(" "),
-        _c(
-          "form",
-          {
-            staticClass: "modal-card-body",
-            attrs: {
-              id: "reserve_form",
-              method: "POST",
-              "aria-label": "reserve"
-            },
-            on: {
-              submit: function($event) {
-                $event.preventDefault()
-                return _vm.reserve($event)
-              }
-            }
-          },
-          [
-            _c("div", { staticClass: "field" }, [
-              _c("label", { staticClass: "label" }, [_vm._v("E-Mail")]),
-              _vm._v(" "),
-              _c("div", { staticClass: "control" }, [
-                _c("input", {
-                  directives: [
-                    {
-                      name: "model",
-                      rawName: "v-model",
-                      value: _vm.email,
-                      expression: "email"
-                    }
-                  ],
-                  staticClass: "input",
-                  attrs: { name: "email", type: "text" },
-                  domProps: { value: _vm.email },
-                  on: {
-                    input: function($event) {
-                      if ($event.target.composing) {
-                        return
-                      }
-                      _vm.email = $event.target.value
-                    }
+        _c("div", { staticClass: "modal-card-body" }, [
+          _c("div", { staticClass: "level" }, [
+            _c(
+              "div",
+              { staticClass: "level-item" },
+              [
+                _c("datepicker", {
+                  attrs: { inline: true, disabledDates: _vm.unavailable },
+                  model: {
+                    value: _vm.highlighted,
+                    callback: function($$v) {
+                      _vm.highlighted = $$v
+                    },
+                    expression: "highlighted"
                   }
                 })
-              ])
-            ]),
-            _vm._v(" "),
-            _c("div", { staticClass: "field" }, [
-              _c("label", { staticClass: "label" }, [_vm._v("Password")]),
-              _vm._v(" "),
-              _c("div", { staticClass: "control" }, [
-                _c("input", {
-                  directives: [
-                    {
-                      name: "model",
-                      rawName: "v-model",
-                      value: _vm.password,
-                      expression: "password"
-                    }
-                  ],
-                  staticClass: "input",
-                  attrs: { name: "password", type: "password" },
-                  domProps: { value: _vm.password },
-                  on: {
-                    input: function($event) {
-                      if ($event.target.composing) {
-                        return
-                      }
-                      _vm.password = $event.target.value
-                    }
-                  }
-                })
-              ])
-            ])
-          ]
-        ),
+              ],
+              1
+            )
+          ])
+        ]),
         _vm._v(" "),
         _c("footer", { staticClass: "modal-card-foot" }, [
           _c(
             "button",
             { staticClass: "button is-success", on: { click: _vm.onSubmit } },
-            [_vm._v("reserve")]
+            [_vm._v("Reserve")]
           ),
           _vm._v(" "),
-          _c("button", { staticClass: "button" }, [_vm._v("Cancel")])
+          _c(
+            "button",
+            { staticClass: "button", on: { click: _vm.reserveClose } },
+            [_vm._v("Cancel")]
+          )
         ])
       ])
     ])
@@ -25199,40 +25345,37 @@ var render = function() {
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
   return _c("div", [
-    _c("h3", [_vm._v("Liste de utilisateurs")]),
+    _c("h3", { staticClass: "title is-size-5" }, [_vm._v("User List")]),
     _vm._v(" "),
     _vm.has_error
       ? _c("div", { staticClass: "alert alert-danger" }, [
-          _c("p", [
-            _vm._v("Erreur, impossible de récupérer la liste des utilisateurs.")
-          ])
+          _c("p", [_vm._v("Error, Unable to get User list.")])
         ])
       : _vm._e(),
     _vm._v(" "),
-    _c(
-      "table",
-      { staticClass: "table" },
-      [
-        _vm._m(0),
-        _vm._v(" "),
+    _c("table", { staticClass: "table" }, [
+      _vm._m(0),
+      _vm._v(" "),
+      _c(
+        "tbody",
         _vm._l(_vm.users, function(user) {
           return _c(
             "tr",
             { key: user.id, staticStyle: { "margin-bottom": "5px" } },
             [
-              _c("th", { attrs: { scope: "row" } }, [_vm._v(_vm._s(user.id))]),
+              _c("th", [_vm._v(_vm._s(user.id))]),
               _vm._v(" "),
-              _c("td", [_vm._v(_vm._s(user.name))]),
+              _c("td", [_vm._v(_vm._s(user.username))]),
               _vm._v(" "),
               _c("td", [_vm._v(_vm._s(user.email))]),
               _vm._v(" "),
               _c("td", [_vm._v(_vm._s(user.created_at))])
             ]
           )
-        })
-      ],
-      2
-    )
+        }),
+        0
+      )
+    ])
   ])
 }
 var staticRenderFns = [
@@ -25240,14 +25383,16 @@ var staticRenderFns = [
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("tr", [
-      _c("th", { attrs: { scope: "col" } }, [_vm._v("Id")]),
-      _vm._v(" "),
-      _c("th", { attrs: { scope: "col" } }, [_vm._v("Nom")]),
-      _vm._v(" "),
-      _c("th", { attrs: { scope: "col" } }, [_vm._v("Email")]),
-      _vm._v(" "),
-      _c("th", { attrs: { scope: "col" } }, [_vm._v("Date d'inscription")])
+    return _c("thead", [
+      _c("tr", [
+        _c("th", [_vm._v("Id")]),
+        _vm._v(" "),
+        _c("th", [_vm._v("Name")]),
+        _vm._v(" "),
+        _c("th", [_vm._v("Email")]),
+        _vm._v(" "),
+        _c("th", [_vm._v("Date of creation")])
+      ])
     ])
   }
 ]
@@ -40390,6 +40535,2456 @@ if (false) {} else {
 
 /***/ }),
 
+/***/ "./node_modules/vuejs-datepicker/dist/vuejs-datepicker.esm.js":
+/*!********************************************************************!*\
+  !*** ./node_modules/vuejs-datepicker/dist/vuejs-datepicker.esm.js ***!
+  \********************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+function _typeof(obj) {
+  if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
+    _typeof = function (obj) {
+      return typeof obj;
+    };
+  } else {
+    _typeof = function (obj) {
+      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+    };
+  }
+
+  return _typeof(obj);
+}
+
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  return Constructor;
+}
+
+function _defineProperty(obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+}
+
+function _objectSpread(target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = arguments[i] != null ? arguments[i] : {};
+    var ownKeys = Object.keys(source);
+
+    if (typeof Object.getOwnPropertySymbols === 'function') {
+      ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) {
+        return Object.getOwnPropertyDescriptor(source, sym).enumerable;
+      }));
+    }
+
+    ownKeys.forEach(function (key) {
+      _defineProperty(target, key, source[key]);
+    });
+  }
+
+  return target;
+}
+
+var Language =
+/*#__PURE__*/
+function () {
+  function Language(language, months, monthsAbbr, days) {
+    _classCallCheck(this, Language);
+
+    this.language = language;
+    this.months = months;
+    this.monthsAbbr = monthsAbbr;
+    this.days = days;
+    this.rtl = false;
+    this.ymd = false;
+    this.yearSuffix = '';
+  }
+
+  _createClass(Language, [{
+    key: "language",
+    get: function get() {
+      return this._language;
+    },
+    set: function set(language) {
+      if (typeof language !== 'string') {
+        throw new TypeError('Language must be a string');
+      }
+
+      this._language = language;
+    }
+  }, {
+    key: "months",
+    get: function get() {
+      return this._months;
+    },
+    set: function set(months) {
+      if (months.length !== 12) {
+        throw new RangeError("There must be 12 months for ".concat(this.language, " language"));
+      }
+
+      this._months = months;
+    }
+  }, {
+    key: "monthsAbbr",
+    get: function get() {
+      return this._monthsAbbr;
+    },
+    set: function set(monthsAbbr) {
+      if (monthsAbbr.length !== 12) {
+        throw new RangeError("There must be 12 abbreviated months for ".concat(this.language, " language"));
+      }
+
+      this._monthsAbbr = monthsAbbr;
+    }
+  }, {
+    key: "days",
+    get: function get() {
+      return this._days;
+    },
+    set: function set(days) {
+      if (days.length !== 7) {
+        throw new RangeError("There must be 7 days for ".concat(this.language, " language"));
+      }
+
+      this._days = days;
+    }
+  }]);
+
+  return Language;
+}(); // eslint-disable-next-line
+
+var en = new Language('English', ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) // eslint-disable-next-line
+;
+
+var utils = {
+  /**
+   * @type {Boolean}
+   */
+  useUtc: false,
+
+  /**
+   * Returns the full year, using UTC or not
+   * @param {Date} date
+   */
+  getFullYear: function getFullYear(date) {
+    return this.useUtc ? date.getUTCFullYear() : date.getFullYear();
+  },
+
+  /**
+   * Returns the month, using UTC or not
+   * @param {Date} date
+   */
+  getMonth: function getMonth(date) {
+    return this.useUtc ? date.getUTCMonth() : date.getMonth();
+  },
+
+  /**
+   * Returns the date, using UTC or not
+   * @param {Date} date
+   */
+  getDate: function getDate(date) {
+    return this.useUtc ? date.getUTCDate() : date.getDate();
+  },
+
+  /**
+   * Returns the day, using UTC or not
+   * @param {Date} date
+   */
+  getDay: function getDay(date) {
+    return this.useUtc ? date.getUTCDay() : date.getDay();
+  },
+
+  /**
+   * Returns the hours, using UTC or not
+   * @param {Date} date
+   */
+  getHours: function getHours(date) {
+    return this.useUtc ? date.getUTCHours() : date.getHours();
+  },
+
+  /**
+   * Returns the minutes, using UTC or not
+   * @param {Date} date
+   */
+  getMinutes: function getMinutes(date) {
+    return this.useUtc ? date.getUTCMinutes() : date.getMinutes();
+  },
+
+  /**
+   * Sets the full year, using UTC or not
+   * @param {Date} date
+   */
+  setFullYear: function setFullYear(date, value, useUtc) {
+    return this.useUtc ? date.setUTCFullYear(value) : date.setFullYear(value);
+  },
+
+  /**
+   * Sets the month, using UTC or not
+   * @param {Date} date
+   */
+  setMonth: function setMonth(date, value, useUtc) {
+    return this.useUtc ? date.setUTCMonth(value) : date.setMonth(value);
+  },
+
+  /**
+   * Sets the date, using UTC or not
+   * @param {Date} date
+   * @param {Number} value
+   */
+  setDate: function setDate(date, value, useUtc) {
+    return this.useUtc ? date.setUTCDate(value) : date.setDate(value);
+  },
+
+  /**
+   * Check if date1 is equivalent to date2, without comparing the time
+   * @see https://stackoverflow.com/a/6202196/4455925
+   * @param {Date} date1
+   * @param {Date} date2
+   */
+  compareDates: function compareDates(date1, date2) {
+    var d1 = new Date(date1.getTime());
+    var d2 = new Date(date2.getTime());
+
+    if (this.useUtc) {
+      d1.setUTCHours(0, 0, 0, 0);
+      d2.setUTCHours(0, 0, 0, 0);
+    } else {
+      d1.setHours(0, 0, 0, 0);
+      d2.setHours(0, 0, 0, 0);
+    }
+
+    return d1.getTime() === d2.getTime();
+  },
+
+  /**
+   * Validates a date object
+   * @param {Date} date - an object instantiated with the new Date constructor
+   * @return {Boolean}
+   */
+  isValidDate: function isValidDate(date) {
+    if (Object.prototype.toString.call(date) !== '[object Date]') {
+      return false;
+    }
+
+    return !isNaN(date.getTime());
+  },
+
+  /**
+   * Return abbreviated week day name
+   * @param {Date}
+   * @param {Array}
+   * @return {String}
+   */
+  getDayNameAbbr: function getDayNameAbbr(date, days) {
+    if (_typeof(date) !== 'object') {
+      throw TypeError('Invalid Type');
+    }
+
+    return days[this.getDay(date)];
+  },
+
+  /**
+   * Return name of the month
+   * @param {Number|Date}
+   * @param {Array}
+   * @return {String}
+   */
+  getMonthName: function getMonthName(month, months) {
+    if (!months) {
+      throw Error('missing 2nd parameter Months array');
+    }
+
+    if (_typeof(month) === 'object') {
+      return months[this.getMonth(month)];
+    }
+
+    if (typeof month === 'number') {
+      return months[month];
+    }
+
+    throw TypeError('Invalid type');
+  },
+
+  /**
+   * Return an abbreviated version of the month
+   * @param {Number|Date}
+   * @return {String}
+   */
+  getMonthNameAbbr: function getMonthNameAbbr(month, monthsAbbr) {
+    if (!monthsAbbr) {
+      throw Error('missing 2nd paramter Months array');
+    }
+
+    if (_typeof(month) === 'object') {
+      return monthsAbbr[this.getMonth(month)];
+    }
+
+    if (typeof month === 'number') {
+      return monthsAbbr[month];
+    }
+
+    throw TypeError('Invalid type');
+  },
+
+  /**
+   * Alternative get total number of days in month
+   * @param {Number} year
+   * @param {Number} m
+   * @return {Number}
+   */
+  daysInMonth: function daysInMonth(year, month) {
+    return /8|3|5|10/.test(month) ? 30 : month === 1 ? !(year % 4) && year % 100 || !(year % 400) ? 29 : 28 : 31;
+  },
+
+  /**
+   * Get nth suffix for date
+   * @param {Number} day
+   * @return {String}
+   */
+  getNthSuffix: function getNthSuffix(day) {
+    switch (day) {
+      case 1:
+      case 21:
+      case 31:
+        return 'st';
+
+      case 2:
+      case 22:
+        return 'nd';
+
+      case 3:
+      case 23:
+        return 'rd';
+
+      default:
+        return 'th';
+    }
+  },
+
+  /**
+   * Formats date object
+   * @param {Date}
+   * @param {String}
+   * @param {Object}
+   * @return {String}
+   */
+  formatDate: function formatDate(date, format, translation) {
+    translation = !translation ? en : translation;
+    var year = this.getFullYear(date);
+    var month = this.getMonth(date) + 1;
+    var day = this.getDate(date);
+    var str = format.replace(/dd/, ('0' + day).slice(-2)).replace(/d/, day).replace(/yyyy/, year).replace(/yy/, String(year).slice(2)).replace(/MMMM/, this.getMonthName(this.getMonth(date), translation.months)).replace(/MMM/, this.getMonthNameAbbr(this.getMonth(date), translation.monthsAbbr)).replace(/MM/, ('0' + month).slice(-2)).replace(/M(?!a|ä|e)/, month).replace(/su/, this.getNthSuffix(this.getDate(date))).replace(/D(?!e|é|i)/, this.getDayNameAbbr(date, translation.days));
+    return str;
+  },
+
+  /**
+   * Creates an array of dates for each day in between two dates.
+   * @param {Date} start
+   * @param {Date} end
+   * @return {Array}
+   */
+  createDateArray: function createDateArray(start, end) {
+    var dates = [];
+
+    while (start <= end) {
+      dates.push(new Date(start));
+      start = this.setDate(new Date(start), this.getDate(new Date(start)) + 1);
+    }
+
+    return dates;
+  },
+
+  /**
+   * method used as a prop validator for input values
+   * @param {*} val
+   * @return {Boolean}
+   */
+  validateDateInput: function validateDateInput(val) {
+    return val === null || val instanceof Date || typeof val === 'string' || typeof val === 'number';
+  }
+};
+var makeDateUtils = function makeDateUtils(useUtc) {
+  return _objectSpread({}, utils, {
+    useUtc: useUtc
+  });
+};
+var utils$1 = _objectSpread({}, utils) // eslint-disable-next-line
+;
+
+var script = {
+  props: {
+    selectedDate: Date,
+    resetTypedDate: [Date],
+    format: [String, Function],
+    translation: Object,
+    inline: Boolean,
+    id: String,
+    name: String,
+    refName: String,
+    openDate: Date,
+    placeholder: String,
+    inputClass: [String, Object, Array],
+    clearButton: Boolean,
+    clearButtonIcon: String,
+    calendarButton: Boolean,
+    calendarButtonIcon: String,
+    calendarButtonIconContent: String,
+    disabled: Boolean,
+    required: Boolean,
+    typeable: Boolean,
+    bootstrapStyling: Boolean,
+    useUtc: Boolean
+  },
+  data: function data() {
+    var constructedDateUtils = makeDateUtils(this.useUtc);
+    return {
+      input: null,
+      typedDate: false,
+      utils: constructedDateUtils
+    };
+  },
+  computed: {
+    formattedValue: function formattedValue() {
+      if (!this.selectedDate) {
+        return null;
+      }
+
+      if (this.typedDate) {
+        return this.typedDate;
+      }
+
+      return typeof this.format === 'function' ? this.format(this.selectedDate) : this.utils.formatDate(new Date(this.selectedDate), this.format, this.translation);
+    },
+    computedInputClass: function computedInputClass() {
+      if (this.bootstrapStyling) {
+        if (typeof this.inputClass === 'string') {
+          return [this.inputClass, 'form-control'].join(' ');
+        }
+
+        return _objectSpread({
+          'form-control': true
+        }, this.inputClass);
+      }
+
+      return this.inputClass;
+    }
+  },
+  watch: {
+    resetTypedDate: function resetTypedDate() {
+      this.typedDate = false;
+    }
+  },
+  methods: {
+    showCalendar: function showCalendar() {
+      this.$emit('showCalendar');
+    },
+
+    /**
+     * Attempt to parse a typed date
+     * @param {Event} event
+     */
+    parseTypedDate: function parseTypedDate(event) {
+      // close calendar if escape or enter are pressed
+      if ([27, // escape
+      13 // enter
+      ].includes(event.keyCode)) {
+        this.input.blur();
+      }
+
+      if (this.typeable) {
+        var typedDate = Date.parse(this.input.value);
+
+        if (!isNaN(typedDate)) {
+          this.typedDate = this.input.value;
+          this.$emit('typedDate', new Date(this.typedDate));
+        }
+      }
+    },
+
+    /**
+     * nullify the typed date to defer to regular formatting
+     * called once the input is blurred
+     */
+    inputBlurred: function inputBlurred() {
+      if (this.typeable && isNaN(Date.parse(this.input.value))) {
+        this.clearDate();
+        this.input.value = null;
+        this.typedDate = null;
+      }
+
+      this.$emit('closeCalendar');
+    },
+
+    /**
+     * emit a clearDate event
+     */
+    clearDate: function clearDate() {
+      this.$emit('clearDate');
+    }
+  },
+  mounted: function mounted() {
+    this.input = this.$el.querySelector('input');
+  }
+} // eslint-disable-next-line
+;
+
+function normalizeComponent(template, style, script, scopeId, isFunctionalTemplate, moduleIdentifier
+/* server only */
+, shadowMode, createInjector, createInjectorSSR, createInjectorShadow) {
+  if (typeof shadowMode !== 'boolean') {
+    createInjectorSSR = createInjector;
+    createInjector = shadowMode;
+    shadowMode = false;
+  } // Vue.extend constructor export interop.
+
+
+  var options = typeof script === 'function' ? script.options : script; // render functions
+
+  if (template && template.render) {
+    options.render = template.render;
+    options.staticRenderFns = template.staticRenderFns;
+    options._compiled = true; // functional template
+
+    if (isFunctionalTemplate) {
+      options.functional = true;
+    }
+  } // scopedId
+
+
+  if (scopeId) {
+    options._scopeId = scopeId;
+  }
+
+  var hook;
+
+  if (moduleIdentifier) {
+    // server build
+    hook = function hook(context) {
+      // 2.3 injection
+      context = context || // cached call
+      this.$vnode && this.$vnode.ssrContext || // stateful
+      this.parent && this.parent.$vnode && this.parent.$vnode.ssrContext; // functional
+      // 2.2 with runInNewContext: true
+
+      if (!context && typeof __VUE_SSR_CONTEXT__ !== 'undefined') {
+        context = __VUE_SSR_CONTEXT__;
+      } // inject component styles
+
+
+      if (style) {
+        style.call(this, createInjectorSSR(context));
+      } // register component module identifier for async chunk inference
+
+
+      if (context && context._registeredComponents) {
+        context._registeredComponents.add(moduleIdentifier);
+      }
+    }; // used by ssr in case component is cached and beforeCreate
+    // never gets called
+
+
+    options._ssrRegister = hook;
+  } else if (style) {
+    hook = shadowMode ? function () {
+      style.call(this, createInjectorShadow(this.$root.$options.shadowRoot));
+    } : function (context) {
+      style.call(this, createInjector(context));
+    };
+  }
+
+  if (hook) {
+    if (options.functional) {
+      // register for functional component in vue file
+      var originalRender = options.render;
+
+      options.render = function renderWithStyleInjection(h, context) {
+        hook.call(context);
+        return originalRender(h, context);
+      };
+    } else {
+      // inject component registration as beforeCreate hook
+      var existing = options.beforeCreate;
+      options.beforeCreate = existing ? [].concat(existing, hook) : [hook];
+    }
+  }
+
+  return script;
+}
+
+var normalizeComponent_1 = normalizeComponent;
+
+/* script */
+const __vue_script__ = script;
+
+/* template */
+var __vue_render__ = function() {
+  var _vm = this;
+  var _h = _vm.$createElement;
+  var _c = _vm._self._c || _h;
+  return _c(
+    "div",
+    { class: { "input-group": _vm.bootstrapStyling } },
+    [
+      _vm.calendarButton
+        ? _c(
+            "span",
+            {
+              staticClass: "vdp-datepicker__calendar-button",
+              class: { "input-group-prepend": _vm.bootstrapStyling },
+              style: { "cursor:not-allowed;": _vm.disabled },
+              on: { click: _vm.showCalendar }
+            },
+            [
+              _c(
+                "span",
+                { class: { "input-group-text": _vm.bootstrapStyling } },
+                [
+                  _c("i", { class: _vm.calendarButtonIcon }, [
+                    _vm._v(
+                      "\n        " +
+                        _vm._s(_vm.calendarButtonIconContent) +
+                        "\n        "
+                    ),
+                    !_vm.calendarButtonIcon
+                      ? _c("span", [_vm._v("…")])
+                      : _vm._e()
+                  ])
+                ]
+              )
+            ]
+          )
+        : _vm._e(),
+      _vm._v(" "),
+      _c("input", {
+        ref: _vm.refName,
+        class: _vm.computedInputClass,
+        attrs: {
+          type: _vm.inline ? "hidden" : "text",
+          name: _vm.name,
+          id: _vm.id,
+          "open-date": _vm.openDate,
+          placeholder: _vm.placeholder,
+          "clear-button": _vm.clearButton,
+          disabled: _vm.disabled,
+          required: _vm.required,
+          readonly: !_vm.typeable,
+          autocomplete: "off"
+        },
+        domProps: { value: _vm.formattedValue },
+        on: {
+          click: _vm.showCalendar,
+          keyup: _vm.parseTypedDate,
+          blur: _vm.inputBlurred
+        }
+      }),
+      _vm._v(" "),
+      _vm.clearButton && _vm.selectedDate
+        ? _c(
+            "span",
+            {
+              staticClass: "vdp-datepicker__clear-button",
+              class: { "input-group-append": _vm.bootstrapStyling },
+              on: {
+                click: function($event) {
+                  return _vm.clearDate()
+                }
+              }
+            },
+            [
+              _c(
+                "span",
+                { class: { "input-group-text": _vm.bootstrapStyling } },
+                [
+                  _c("i", { class: _vm.clearButtonIcon }, [
+                    !_vm.clearButtonIcon ? _c("span", [_vm._v("×")]) : _vm._e()
+                  ])
+                ]
+              )
+            ]
+          )
+        : _vm._e(),
+      _vm._v(" "),
+      _vm._t("afterDateInput")
+    ],
+    2
+  )
+};
+var __vue_staticRenderFns__ = [];
+__vue_render__._withStripped = true;
+
+  /* style */
+  const __vue_inject_styles__ = undefined;
+  /* scoped */
+  const __vue_scope_id__ = undefined;
+  /* module identifier */
+  const __vue_module_identifier__ = undefined;
+  /* functional template */
+  const __vue_is_functional_template__ = false;
+  /* style inject */
+  
+  /* style inject SSR */
+  
+
+  
+  var DateInput = normalizeComponent_1(
+    { render: __vue_render__, staticRenderFns: __vue_staticRenderFns__ },
+    __vue_inject_styles__,
+    __vue_script__,
+    __vue_scope_id__,
+    __vue_is_functional_template__,
+    __vue_module_identifier__,
+    undefined,
+    undefined
+  );
+
+//
+var script$1 = {
+  props: {
+    showDayView: Boolean,
+    selectedDate: Date,
+    pageDate: Date,
+    pageTimestamp: Number,
+    fullMonthName: Boolean,
+    allowedToShowView: Function,
+    dayCellContent: {
+      type: Function,
+      "default": function _default(day) {
+        return day.date;
+      }
+    },
+    disabledDates: Object,
+    highlighted: Object,
+    calendarClass: [String, Object, Array],
+    calendarStyle: Object,
+    translation: Object,
+    isRtl: Boolean,
+    mondayFirst: Boolean,
+    useUtc: Boolean
+  },
+  data: function data() {
+    var constructedDateUtils = makeDateUtils(this.useUtc);
+    return {
+      utils: constructedDateUtils
+    };
+  },
+  computed: {
+    /**
+     * Returns an array of day names
+     * @return {String[]}
+     */
+    daysOfWeek: function daysOfWeek() {
+      if (this.mondayFirst) {
+        var tempDays = this.translation.days.slice();
+        tempDays.push(tempDays.shift());
+        return tempDays;
+      }
+
+      return this.translation.days;
+    },
+
+    /**
+     * Returns the day number of the week less one for the first of the current month
+     * Used to show amount of empty cells before the first in the day calendar layout
+     * @return {Number}
+     */
+    blankDays: function blankDays() {
+      var d = this.pageDate;
+      var dObj = this.useUtc ? new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)) : new Date(d.getFullYear(), d.getMonth(), 1, d.getHours(), d.getMinutes());
+
+      if (this.mondayFirst) {
+        return this.utils.getDay(dObj) > 0 ? this.utils.getDay(dObj) - 1 : 6;
+      }
+
+      return this.utils.getDay(dObj);
+    },
+
+    /**
+     * @return {Object[]}
+     */
+    days: function days() {
+      var d = this.pageDate;
+      var days = []; // set up a new date object to the beginning of the current 'page'
+
+      var dObj = this.useUtc ? new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)) : new Date(d.getFullYear(), d.getMonth(), 1, d.getHours(), d.getMinutes());
+      var daysInMonth = this.utils.daysInMonth(this.utils.getFullYear(dObj), this.utils.getMonth(dObj));
+
+      for (var i = 0; i < daysInMonth; i++) {
+        days.push({
+          date: this.utils.getDate(dObj),
+          timestamp: dObj.getTime(),
+          isSelected: this.isSelectedDate(dObj),
+          isDisabled: this.isDisabledDate(dObj),
+          isHighlighted: this.isHighlightedDate(dObj),
+          isHighlightStart: this.isHighlightStart(dObj),
+          isHighlightEnd: this.isHighlightEnd(dObj),
+          isToday: this.utils.compareDates(dObj, new Date()),
+          isWeekend: this.utils.getDay(dObj) === 0 || this.utils.getDay(dObj) === 6,
+          isSaturday: this.utils.getDay(dObj) === 6,
+          isSunday: this.utils.getDay(dObj) === 0
+        });
+        this.utils.setDate(dObj, this.utils.getDate(dObj) + 1);
+      }
+
+      return days;
+    },
+
+    /**
+     * Gets the name of the month the current page is on
+     * @return {String}
+     */
+    currMonthName: function currMonthName() {
+      var monthName = this.fullMonthName ? this.translation.months : this.translation.monthsAbbr;
+      return this.utils.getMonthNameAbbr(this.utils.getMonth(this.pageDate), monthName);
+    },
+
+    /**
+     * Gets the name of the year that current page is on
+     * @return {Number}
+     */
+    currYearName: function currYearName() {
+      var yearSuffix = this.translation.yearSuffix;
+      return "".concat(this.utils.getFullYear(this.pageDate)).concat(yearSuffix);
+    },
+
+    /**
+     * Is this translation using year/month/day format?
+     * @return {Boolean}
+     */
+    isYmd: function isYmd() {
+      return this.translation.ymd && this.translation.ymd === true;
+    },
+
+    /**
+     * Is the left hand navigation button disabled?
+     * @return {Boolean}
+     */
+    isLeftNavDisabled: function isLeftNavDisabled() {
+      return this.isRtl ? this.isNextMonthDisabled(this.pageTimestamp) : this.isPreviousMonthDisabled(this.pageTimestamp);
+    },
+
+    /**
+     * Is the right hand navigation button disabled?
+     * @return {Boolean}
+     */
+    isRightNavDisabled: function isRightNavDisabled() {
+      return this.isRtl ? this.isPreviousMonthDisabled(this.pageTimestamp) : this.isNextMonthDisabled(this.pageTimestamp);
+    }
+  },
+  methods: {
+    selectDate: function selectDate(date) {
+      if (date.isDisabled) {
+        this.$emit('selectedDisabled', date);
+        return false;
+      }
+
+      this.$emit('selectDate', date);
+    },
+
+    /**
+     * @return {Number}
+     */
+    getPageMonth: function getPageMonth() {
+      return this.utils.getMonth(this.pageDate);
+    },
+
+    /**
+     * Emit an event to show the month picker
+     */
+    showMonthCalendar: function showMonthCalendar() {
+      this.$emit('showMonthCalendar');
+    },
+
+    /**
+     * Change the page month
+     * @param {Number} incrementBy
+     */
+    changeMonth: function changeMonth(incrementBy) {
+      var date = this.pageDate;
+      this.utils.setMonth(date, this.utils.getMonth(date) + incrementBy);
+      this.$emit('changedMonth', date);
+    },
+
+    /**
+     * Decrement the page month
+     */
+    previousMonth: function previousMonth() {
+      if (!this.isPreviousMonthDisabled()) {
+        this.changeMonth(-1);
+      }
+    },
+
+    /**
+     * Is the previous month disabled?
+     * @return {Boolean}
+     */
+    isPreviousMonthDisabled: function isPreviousMonthDisabled() {
+      if (!this.disabledDates || !this.disabledDates.to) {
+        return false;
+      }
+
+      var d = this.pageDate;
+      return this.utils.getMonth(this.disabledDates.to) >= this.utils.getMonth(d) && this.utils.getFullYear(this.disabledDates.to) >= this.utils.getFullYear(d);
+    },
+
+    /**
+     * Increment the current page month
+     */
+    nextMonth: function nextMonth() {
+      if (!this.isNextMonthDisabled()) {
+        this.changeMonth(+1);
+      }
+    },
+
+    /**
+     * Is the next month disabled?
+     * @return {Boolean}
+     */
+    isNextMonthDisabled: function isNextMonthDisabled() {
+      if (!this.disabledDates || !this.disabledDates.from) {
+        return false;
+      }
+
+      var d = this.pageDate;
+      return this.utils.getMonth(this.disabledDates.from) <= this.utils.getMonth(d) && this.utils.getFullYear(this.disabledDates.from) <= this.utils.getFullYear(d);
+    },
+
+    /**
+     * Whether a day is selected
+     * @param {Date}
+     * @return {Boolean}
+     */
+    isSelectedDate: function isSelectedDate(dObj) {
+      return this.selectedDate && this.utils.compareDates(this.selectedDate, dObj);
+    },
+
+    /**
+     * Whether a day is disabled
+     * @param {Date}
+     * @return {Boolean}
+     */
+    isDisabledDate: function isDisabledDate(date) {
+      var _this = this;
+
+      var disabledDates = false;
+
+      if (typeof this.disabledDates === 'undefined') {
+        return false;
+      }
+
+      if (typeof this.disabledDates.dates !== 'undefined') {
+        this.disabledDates.dates.forEach(function (d) {
+          if (_this.utils.compareDates(date, d)) {
+            disabledDates = true;
+            return true;
+          }
+        });
+      }
+
+      if (typeof this.disabledDates.to !== 'undefined' && this.disabledDates.to && date < this.disabledDates.to) {
+        disabledDates = true;
+      }
+
+      if (typeof this.disabledDates.from !== 'undefined' && this.disabledDates.from && date > this.disabledDates.from) {
+        disabledDates = true;
+      }
+
+      if (typeof this.disabledDates.ranges !== 'undefined') {
+        this.disabledDates.ranges.forEach(function (range) {
+          if (typeof range.from !== 'undefined' && range.from && typeof range.to !== 'undefined' && range.to) {
+            if (date < range.to && date > range.from) {
+              disabledDates = true;
+              return true;
+            }
+          }
+        });
+      }
+
+      if (typeof this.disabledDates.days !== 'undefined' && this.disabledDates.days.indexOf(this.utils.getDay(date)) !== -1) {
+        disabledDates = true;
+      }
+
+      if (typeof this.disabledDates.daysOfMonth !== 'undefined' && this.disabledDates.daysOfMonth.indexOf(this.utils.getDate(date)) !== -1) {
+        disabledDates = true;
+      }
+
+      if (typeof this.disabledDates.customPredictor === 'function' && this.disabledDates.customPredictor(date)) {
+        disabledDates = true;
+      }
+
+      return disabledDates;
+    },
+
+    /**
+     * Whether a day is highlighted (only if it is not disabled already except when highlighted.includeDisabled is true)
+     * @param {Date}
+     * @return {Boolean}
+     */
+    isHighlightedDate: function isHighlightedDate(date) {
+      var _this2 = this;
+
+      if (!(this.highlighted && this.highlighted.includeDisabled) && this.isDisabledDate(date)) {
+        return false;
+      }
+
+      var highlighted = false;
+
+      if (typeof this.highlighted === 'undefined') {
+        return false;
+      }
+
+      if (typeof this.highlighted.dates !== 'undefined') {
+        this.highlighted.dates.forEach(function (d) {
+          if (_this2.utils.compareDates(date, d)) {
+            highlighted = true;
+            return true;
+          }
+        });
+      }
+
+      if (this.isDefined(this.highlighted.from) && this.isDefined(this.highlighted.to)) {
+        highlighted = date >= this.highlighted.from && date <= this.highlighted.to;
+      }
+
+      if (typeof this.highlighted.days !== 'undefined' && this.highlighted.days.indexOf(this.utils.getDay(date)) !== -1) {
+        highlighted = true;
+      }
+
+      if (typeof this.highlighted.daysOfMonth !== 'undefined' && this.highlighted.daysOfMonth.indexOf(this.utils.getDate(date)) !== -1) {
+        highlighted = true;
+      }
+
+      if (typeof this.highlighted.customPredictor === 'function' && this.highlighted.customPredictor(date)) {
+        highlighted = true;
+      }
+
+      return highlighted;
+    },
+    dayClasses: function dayClasses(day) {
+      return {
+        'selected': day.isSelected,
+        'disabled': day.isDisabled,
+        'highlighted': day.isHighlighted,
+        'today': day.isToday,
+        'weekend': day.isWeekend,
+        'sat': day.isSaturday,
+        'sun': day.isSunday,
+        'highlight-start': day.isHighlightStart,
+        'highlight-end': day.isHighlightEnd
+      };
+    },
+
+    /**
+     * Whether a day is highlighted and it is the first date
+     * in the highlighted range of dates
+     * @param {Date}
+     * @return {Boolean}
+     */
+    isHighlightStart: function isHighlightStart(date) {
+      return this.isHighlightedDate(date) && this.highlighted.from instanceof Date && this.utils.getFullYear(this.highlighted.from) === this.utils.getFullYear(date) && this.utils.getMonth(this.highlighted.from) === this.utils.getMonth(date) && this.utils.getDate(this.highlighted.from) === this.utils.getDate(date);
+    },
+
+    /**
+     * Whether a day is highlighted and it is the first date
+     * in the highlighted range of dates
+     * @param {Date}
+     * @return {Boolean}
+     */
+    isHighlightEnd: function isHighlightEnd(date) {
+      return this.isHighlightedDate(date) && this.highlighted.to instanceof Date && this.utils.getFullYear(this.highlighted.to) === this.utils.getFullYear(date) && this.utils.getMonth(this.highlighted.to) === this.utils.getMonth(date) && this.utils.getDate(this.highlighted.to) === this.utils.getDate(date);
+    },
+
+    /**
+     * Helper
+     * @param  {mixed}  prop
+     * @return {Boolean}
+     */
+    isDefined: function isDefined(prop) {
+      return typeof prop !== 'undefined' && prop;
+    }
+  } // eslint-disable-next-line
+
+};
+
+/* script */
+const __vue_script__$1 = script$1;
+
+/* template */
+var __vue_render__$1 = function() {
+  var _vm = this;
+  var _h = _vm.$createElement;
+  var _c = _vm._self._c || _h;
+  return _c(
+    "div",
+    {
+      directives: [
+        {
+          name: "show",
+          rawName: "v-show",
+          value: _vm.showDayView,
+          expression: "showDayView"
+        }
+      ],
+      class: [_vm.calendarClass, "vdp-datepicker__calendar"],
+      style: _vm.calendarStyle,
+      on: {
+        mousedown: function($event) {
+          $event.preventDefault();
+        }
+      }
+    },
+    [
+      _vm._t("beforeCalendarHeader"),
+      _vm._v(" "),
+      _c("header", [
+        _c(
+          "span",
+          {
+            staticClass: "prev",
+            class: { disabled: _vm.isLeftNavDisabled },
+            on: {
+              click: function($event) {
+                _vm.isRtl ? _vm.nextMonth() : _vm.previousMonth();
+              }
+            }
+          },
+          [_vm._v("<")]
+        ),
+        _vm._v(" "),
+        _c(
+          "span",
+          {
+            staticClass: "day__month_btn",
+            class: _vm.allowedToShowView("month") ? "up" : "",
+            on: { click: _vm.showMonthCalendar }
+          },
+          [
+            _vm._v(
+              _vm._s(_vm.isYmd ? _vm.currYearName : _vm.currMonthName) +
+                " " +
+                _vm._s(_vm.isYmd ? _vm.currMonthName : _vm.currYearName)
+            )
+          ]
+        ),
+        _vm._v(" "),
+        _c(
+          "span",
+          {
+            staticClass: "next",
+            class: { disabled: _vm.isRightNavDisabled },
+            on: {
+              click: function($event) {
+                _vm.isRtl ? _vm.previousMonth() : _vm.nextMonth();
+              }
+            }
+          },
+          [_vm._v(">")]
+        )
+      ]),
+      _vm._v(" "),
+      _c(
+        "div",
+        { class: _vm.isRtl ? "flex-rtl" : "" },
+        [
+          _vm._l(_vm.daysOfWeek, function(d) {
+            return _c(
+              "span",
+              { key: d.timestamp, staticClass: "cell day-header" },
+              [_vm._v(_vm._s(d))]
+            )
+          }),
+          _vm._v(" "),
+          _vm.blankDays > 0
+            ? _vm._l(_vm.blankDays, function(d) {
+                return _c("span", {
+                  key: d.timestamp,
+                  staticClass: "cell day blank"
+                })
+              })
+            : _vm._e(),
+          _vm._l(_vm.days, function(day) {
+            return _c("span", {
+              key: day.timestamp,
+              staticClass: "cell day",
+              class: _vm.dayClasses(day),
+              domProps: { innerHTML: _vm._s(_vm.dayCellContent(day)) },
+              on: {
+                click: function($event) {
+                  return _vm.selectDate(day)
+                }
+              }
+            })
+          })
+        ],
+        2
+      )
+    ],
+    2
+  )
+};
+var __vue_staticRenderFns__$1 = [];
+__vue_render__$1._withStripped = true;
+
+  /* style */
+  const __vue_inject_styles__$1 = undefined;
+  /* scoped */
+  const __vue_scope_id__$1 = undefined;
+  /* module identifier */
+  const __vue_module_identifier__$1 = undefined;
+  /* functional template */
+  const __vue_is_functional_template__$1 = false;
+  /* style inject */
+  
+  /* style inject SSR */
+  
+
+  
+  var PickerDay = normalizeComponent_1(
+    { render: __vue_render__$1, staticRenderFns: __vue_staticRenderFns__$1 },
+    __vue_inject_styles__$1,
+    __vue_script__$1,
+    __vue_scope_id__$1,
+    __vue_is_functional_template__$1,
+    __vue_module_identifier__$1,
+    undefined,
+    undefined
+  );
+
+//
+var script$2 = {
+  props: {
+    showMonthView: Boolean,
+    selectedDate: Date,
+    pageDate: Date,
+    pageTimestamp: Number,
+    disabledDates: Object,
+    calendarClass: [String, Object, Array],
+    calendarStyle: Object,
+    translation: Object,
+    isRtl: Boolean,
+    allowedToShowView: Function,
+    useUtc: Boolean
+  },
+  data: function data() {
+    var constructedDateUtils = makeDateUtils(this.useUtc);
+    return {
+      utils: constructedDateUtils
+    };
+  },
+  computed: {
+    months: function months() {
+      var d = this.pageDate;
+      var months = []; // set up a new date object to the beginning of the current 'page'
+
+      var dObj = this.useUtc ? new Date(Date.UTC(d.getUTCFullYear(), 0, d.getUTCDate())) : new Date(d.getFullYear(), 0, d.getDate(), d.getHours(), d.getMinutes());
+
+      for (var i = 0; i < 12; i++) {
+        months.push({
+          month: this.utils.getMonthName(i, this.translation.months),
+          timestamp: dObj.getTime(),
+          isSelected: this.isSelectedMonth(dObj),
+          isDisabled: this.isDisabledMonth(dObj)
+        });
+        this.utils.setMonth(dObj, this.utils.getMonth(dObj) + 1);
+      }
+
+      return months;
+    },
+
+    /**
+     * Get year name on current page.
+     * @return {String}
+     */
+    pageYearName: function pageYearName() {
+      var yearSuffix = this.translation.yearSuffix;
+      return "".concat(this.utils.getFullYear(this.pageDate)).concat(yearSuffix);
+    },
+
+    /**
+     * Is the left hand navigation disabled
+     * @return {Boolean}
+     */
+    isLeftNavDisabled: function isLeftNavDisabled() {
+      return this.isRtl ? this.isNextYearDisabled(this.pageTimestamp) : this.isPreviousYearDisabled(this.pageTimestamp);
+    },
+
+    /**
+     * Is the right hand navigation disabled
+     * @return {Boolean}
+     */
+    isRightNavDisabled: function isRightNavDisabled() {
+      return this.isRtl ? this.isPreviousYearDisabled(this.pageTimestamp) : this.isNextYearDisabled(this.pageTimestamp);
+    }
+  },
+  methods: {
+    /**
+     * Emits a selectMonth event
+     * @param {Object} month
+     */
+    selectMonth: function selectMonth(month) {
+      if (month.isDisabled) {
+        return false;
+      }
+
+      this.$emit('selectMonth', month);
+    },
+
+    /**
+     * Changes the year up or down
+     * @param {Number} incrementBy
+     */
+    changeYear: function changeYear(incrementBy) {
+      var date = this.pageDate;
+      this.utils.setFullYear(date, this.utils.getFullYear(date) + incrementBy);
+      this.$emit('changedYear', date);
+    },
+
+    /**
+     * Decrements the year
+     */
+    previousYear: function previousYear() {
+      if (!this.isPreviousYearDisabled()) {
+        this.changeYear(-1);
+      }
+    },
+
+    /**
+     * Checks if the previous year is disabled or not
+     * @return {Boolean}
+     */
+    isPreviousYearDisabled: function isPreviousYearDisabled() {
+      if (!this.disabledDates || !this.disabledDates.to) {
+        return false;
+      }
+
+      return this.utils.getFullYear(this.disabledDates.to) >= this.utils.getFullYear(this.pageDate);
+    },
+
+    /**
+     * Increments the year
+     */
+    nextYear: function nextYear() {
+      if (!this.isNextYearDisabled()) {
+        this.changeYear(1);
+      }
+    },
+
+    /**
+     * Checks if the next year is disabled or not
+     * @return {Boolean}
+     */
+    isNextYearDisabled: function isNextYearDisabled() {
+      if (!this.disabledDates || !this.disabledDates.from) {
+        return false;
+      }
+
+      return this.utils.getFullYear(this.disabledDates.from) <= this.utils.getFullYear(this.pageDate);
+    },
+
+    /**
+     * Emits an event that shows the year calendar
+     */
+    showYearCalendar: function showYearCalendar() {
+      this.$emit('showYearCalendar');
+    },
+
+    /**
+     * Whether the selected date is in this month
+     * @param {Date}
+     * @return {Boolean}
+     */
+    isSelectedMonth: function isSelectedMonth(date) {
+      return this.selectedDate && this.utils.getFullYear(this.selectedDate) === this.utils.getFullYear(date) && this.utils.getMonth(this.selectedDate) === this.utils.getMonth(date);
+    },
+
+    /**
+     * Whether a month is disabled
+     * @param {Date}
+     * @return {Boolean}
+     */
+    isDisabledMonth: function isDisabledMonth(date) {
+      var disabledDates = false;
+
+      if (typeof this.disabledDates === 'undefined') {
+        return false;
+      }
+
+      if (typeof this.disabledDates.to !== 'undefined' && this.disabledDates.to) {
+        if (this.utils.getMonth(date) < this.utils.getMonth(this.disabledDates.to) && this.utils.getFullYear(date) <= this.utils.getFullYear(this.disabledDates.to) || this.utils.getFullYear(date) < this.utils.getFullYear(this.disabledDates.to)) {
+          disabledDates = true;
+        }
+      }
+
+      if (typeof this.disabledDates.from !== 'undefined' && this.disabledDates.from) {
+        if (this.utils.getMonth(date) > this.utils.getMonth(this.disabledDates.from) && this.utils.getFullYear(date) >= this.utils.getFullYear(this.disabledDates.from) || this.utils.getFullYear(date) > this.utils.getFullYear(this.disabledDates.from)) {
+          disabledDates = true;
+        }
+      }
+
+      if (typeof this.disabledDates.customPredictor === 'function' && this.disabledDates.customPredictor(date)) {
+        disabledDates = true;
+      }
+
+      return disabledDates;
+    }
+  } // eslint-disable-next-line
+
+};
+
+/* script */
+const __vue_script__$2 = script$2;
+
+/* template */
+var __vue_render__$2 = function() {
+  var _vm = this;
+  var _h = _vm.$createElement;
+  var _c = _vm._self._c || _h;
+  return _c(
+    "div",
+    {
+      directives: [
+        {
+          name: "show",
+          rawName: "v-show",
+          value: _vm.showMonthView,
+          expression: "showMonthView"
+        }
+      ],
+      class: [_vm.calendarClass, "vdp-datepicker__calendar"],
+      style: _vm.calendarStyle,
+      on: {
+        mousedown: function($event) {
+          $event.preventDefault();
+        }
+      }
+    },
+    [
+      _vm._t("beforeCalendarHeader"),
+      _vm._v(" "),
+      _c("header", [
+        _c(
+          "span",
+          {
+            staticClass: "prev",
+            class: { disabled: _vm.isLeftNavDisabled },
+            on: {
+              click: function($event) {
+                _vm.isRtl ? _vm.nextYear() : _vm.previousYear();
+              }
+            }
+          },
+          [_vm._v("<")]
+        ),
+        _vm._v(" "),
+        _c(
+          "span",
+          {
+            staticClass: "month__year_btn",
+            class: _vm.allowedToShowView("year") ? "up" : "",
+            on: { click: _vm.showYearCalendar }
+          },
+          [_vm._v(_vm._s(_vm.pageYearName))]
+        ),
+        _vm._v(" "),
+        _c(
+          "span",
+          {
+            staticClass: "next",
+            class: { disabled: _vm.isRightNavDisabled },
+            on: {
+              click: function($event) {
+                _vm.isRtl ? _vm.previousYear() : _vm.nextYear();
+              }
+            }
+          },
+          [_vm._v(">")]
+        )
+      ]),
+      _vm._v(" "),
+      _vm._l(_vm.months, function(month) {
+        return _c(
+          "span",
+          {
+            key: month.timestamp,
+            staticClass: "cell month",
+            class: { selected: month.isSelected, disabled: month.isDisabled },
+            on: {
+              click: function($event) {
+                $event.stopPropagation();
+                return _vm.selectMonth(month)
+              }
+            }
+          },
+          [_vm._v(_vm._s(month.month))]
+        )
+      })
+    ],
+    2
+  )
+};
+var __vue_staticRenderFns__$2 = [];
+__vue_render__$2._withStripped = true;
+
+  /* style */
+  const __vue_inject_styles__$2 = undefined;
+  /* scoped */
+  const __vue_scope_id__$2 = undefined;
+  /* module identifier */
+  const __vue_module_identifier__$2 = undefined;
+  /* functional template */
+  const __vue_is_functional_template__$2 = false;
+  /* style inject */
+  
+  /* style inject SSR */
+  
+
+  
+  var PickerMonth = normalizeComponent_1(
+    { render: __vue_render__$2, staticRenderFns: __vue_staticRenderFns__$2 },
+    __vue_inject_styles__$2,
+    __vue_script__$2,
+    __vue_scope_id__$2,
+    __vue_is_functional_template__$2,
+    __vue_module_identifier__$2,
+    undefined,
+    undefined
+  );
+
+//
+var script$3 = {
+  props: {
+    showYearView: Boolean,
+    selectedDate: Date,
+    pageDate: Date,
+    pageTimestamp: Number,
+    disabledDates: Object,
+    highlighted: Object,
+    calendarClass: [String, Object, Array],
+    calendarStyle: Object,
+    translation: Object,
+    isRtl: Boolean,
+    allowedToShowView: Function,
+    useUtc: Boolean
+  },
+  computed: {
+    years: function years() {
+      var d = this.pageDate;
+      var years = []; // set up a new date object to the beginning of the current 'page'7
+
+      var dObj = this.useUtc ? new Date(Date.UTC(Math.floor(d.getUTCFullYear() / 10) * 10, d.getUTCMonth(), d.getUTCDate())) : new Date(Math.floor(d.getFullYear() / 10) * 10, d.getMonth(), d.getDate(), d.getHours(), d.getMinutes());
+
+      for (var i = 0; i < 10; i++) {
+        years.push({
+          year: this.utils.getFullYear(dObj),
+          timestamp: dObj.getTime(),
+          isSelected: this.isSelectedYear(dObj),
+          isDisabled: this.isDisabledYear(dObj)
+        });
+        this.utils.setFullYear(dObj, this.utils.getFullYear(dObj) + 1);
+      }
+
+      return years;
+    },
+
+    /**
+     * @return {String}
+     */
+    getPageDecade: function getPageDecade() {
+      var decadeStart = Math.floor(this.utils.getFullYear(this.pageDate) / 10) * 10;
+      var decadeEnd = decadeStart + 9;
+      var yearSuffix = this.translation.yearSuffix;
+      return "".concat(decadeStart, " - ").concat(decadeEnd).concat(yearSuffix);
+    },
+
+    /**
+     * Is the left hand navigation button disabled?
+     * @return {Boolean}
+     */
+    isLeftNavDisabled: function isLeftNavDisabled() {
+      return this.isRtl ? this.isNextDecadeDisabled(this.pageTimestamp) : this.isPreviousDecadeDisabled(this.pageTimestamp);
+    },
+
+    /**
+     * Is the right hand navigation button disabled?
+     * @return {Boolean}
+     */
+    isRightNavDisabled: function isRightNavDisabled() {
+      return this.isRtl ? this.isPreviousDecadeDisabled(this.pageTimestamp) : this.isNextDecadeDisabled(this.pageTimestamp);
+    }
+  },
+  data: function data() {
+    var constructedDateUtils = makeDateUtils(this.useUtc);
+    return {
+      utils: constructedDateUtils
+    };
+  },
+  methods: {
+    selectYear: function selectYear(year) {
+      if (year.isDisabled) {
+        return false;
+      }
+
+      this.$emit('selectYear', year);
+    },
+    changeYear: function changeYear(incrementBy) {
+      var date = this.pageDate;
+      this.utils.setFullYear(date, this.utils.getFullYear(date) + incrementBy);
+      this.$emit('changedDecade', date);
+    },
+    previousDecade: function previousDecade() {
+      if (this.isPreviousDecadeDisabled()) {
+        return false;
+      }
+
+      this.changeYear(-10);
+    },
+    isPreviousDecadeDisabled: function isPreviousDecadeDisabled() {
+      if (!this.disabledDates || !this.disabledDates.to) {
+        return false;
+      }
+
+      var disabledYear = this.utils.getFullYear(this.disabledDates.to);
+      var lastYearInPreviousPage = Math.floor(this.utils.getFullYear(this.pageDate) / 10) * 10 - 1;
+      return disabledYear > lastYearInPreviousPage;
+    },
+    nextDecade: function nextDecade() {
+      if (this.isNextDecadeDisabled()) {
+        return false;
+      }
+
+      this.changeYear(10);
+    },
+    isNextDecadeDisabled: function isNextDecadeDisabled() {
+      if (!this.disabledDates || !this.disabledDates.from) {
+        return false;
+      }
+
+      var disabledYear = this.utils.getFullYear(this.disabledDates.from);
+      var firstYearInNextPage = Math.ceil(this.utils.getFullYear(this.pageDate) / 10) * 10;
+      return disabledYear < firstYearInNextPage;
+    },
+
+    /**
+     * Whether the selected date is in this year
+     * @param {Date}
+     * @return {Boolean}
+     */
+    isSelectedYear: function isSelectedYear(date) {
+      return this.selectedDate && this.utils.getFullYear(this.selectedDate) === this.utils.getFullYear(date);
+    },
+
+    /**
+     * Whether a year is disabled
+     * @param {Date}
+     * @return {Boolean}
+     */
+    isDisabledYear: function isDisabledYear(date) {
+      var disabledDates = false;
+
+      if (typeof this.disabledDates === 'undefined' || !this.disabledDates) {
+        return false;
+      }
+
+      if (typeof this.disabledDates.to !== 'undefined' && this.disabledDates.to) {
+        if (this.utils.getFullYear(date) < this.utils.getFullYear(this.disabledDates.to)) {
+          disabledDates = true;
+        }
+      }
+
+      if (typeof this.disabledDates.from !== 'undefined' && this.disabledDates.from) {
+        if (this.utils.getFullYear(date) > this.utils.getFullYear(this.disabledDates.from)) {
+          disabledDates = true;
+        }
+      }
+
+      if (typeof this.disabledDates.customPredictor === 'function' && this.disabledDates.customPredictor(date)) {
+        disabledDates = true;
+      }
+
+      return disabledDates;
+    }
+  } // eslint-disable-next-line
+
+};
+
+/* script */
+const __vue_script__$3 = script$3;
+
+/* template */
+var __vue_render__$3 = function() {
+  var _vm = this;
+  var _h = _vm.$createElement;
+  var _c = _vm._self._c || _h;
+  return _c(
+    "div",
+    {
+      directives: [
+        {
+          name: "show",
+          rawName: "v-show",
+          value: _vm.showYearView,
+          expression: "showYearView"
+        }
+      ],
+      class: [_vm.calendarClass, "vdp-datepicker__calendar"],
+      style: _vm.calendarStyle,
+      on: {
+        mousedown: function($event) {
+          $event.preventDefault();
+        }
+      }
+    },
+    [
+      _vm._t("beforeCalendarHeader"),
+      _vm._v(" "),
+      _c("header", [
+        _c(
+          "span",
+          {
+            staticClass: "prev",
+            class: { disabled: _vm.isLeftNavDisabled },
+            on: {
+              click: function($event) {
+                _vm.isRtl ? _vm.nextDecade() : _vm.previousDecade();
+              }
+            }
+          },
+          [_vm._v("<")]
+        ),
+        _vm._v(" "),
+        _c("span", [_vm._v(_vm._s(_vm.getPageDecade))]),
+        _vm._v(" "),
+        _c(
+          "span",
+          {
+            staticClass: "next",
+            class: { disabled: _vm.isRightNavDisabled },
+            on: {
+              click: function($event) {
+                _vm.isRtl ? _vm.previousDecade() : _vm.nextDecade();
+              }
+            }
+          },
+          [_vm._v(">")]
+        )
+      ]),
+      _vm._v(" "),
+      _vm._l(_vm.years, function(year) {
+        return _c(
+          "span",
+          {
+            key: year.timestamp,
+            staticClass: "cell year",
+            class: { selected: year.isSelected, disabled: year.isDisabled },
+            on: {
+              click: function($event) {
+                $event.stopPropagation();
+                return _vm.selectYear(year)
+              }
+            }
+          },
+          [_vm._v(_vm._s(year.year))]
+        )
+      })
+    ],
+    2
+  )
+};
+var __vue_staticRenderFns__$3 = [];
+__vue_render__$3._withStripped = true;
+
+  /* style */
+  const __vue_inject_styles__$3 = undefined;
+  /* scoped */
+  const __vue_scope_id__$3 = undefined;
+  /* module identifier */
+  const __vue_module_identifier__$3 = undefined;
+  /* functional template */
+  const __vue_is_functional_template__$3 = false;
+  /* style inject */
+  
+  /* style inject SSR */
+  
+
+  
+  var PickerYear = normalizeComponent_1(
+    { render: __vue_render__$3, staticRenderFns: __vue_staticRenderFns__$3 },
+    __vue_inject_styles__$3,
+    __vue_script__$3,
+    __vue_scope_id__$3,
+    __vue_is_functional_template__$3,
+    __vue_module_identifier__$3,
+    undefined,
+    undefined
+  );
+
+//
+var script$4 = {
+  components: {
+    DateInput: DateInput,
+    PickerDay: PickerDay,
+    PickerMonth: PickerMonth,
+    PickerYear: PickerYear
+  },
+  props: {
+    value: {
+      validator: function validator(val) {
+        return utils$1.validateDateInput(val);
+      }
+    },
+    name: String,
+    refName: String,
+    id: String,
+    format: {
+      type: [String, Function],
+      "default": 'dd MMM yyyy'
+    },
+    language: {
+      type: Object,
+      "default": function _default() {
+        return en;
+      }
+    },
+    openDate: {
+      validator: function validator(val) {
+        return utils$1.validateDateInput(val);
+      }
+    },
+    dayCellContent: Function,
+    fullMonthName: Boolean,
+    disabledDates: Object,
+    highlighted: Object,
+    placeholder: String,
+    inline: Boolean,
+    calendarClass: [String, Object, Array],
+    inputClass: [String, Object, Array],
+    wrapperClass: [String, Object, Array],
+    mondayFirst: Boolean,
+    clearButton: Boolean,
+    clearButtonIcon: String,
+    calendarButton: Boolean,
+    calendarButtonIcon: String,
+    calendarButtonIconContent: String,
+    bootstrapStyling: Boolean,
+    initialView: String,
+    disabled: Boolean,
+    required: Boolean,
+    typeable: Boolean,
+    useUtc: Boolean,
+    minimumView: {
+      type: String,
+      "default": 'day'
+    },
+    maximumView: {
+      type: String,
+      "default": 'year'
+    }
+  },
+  data: function data() {
+    var startDate = this.openDate ? new Date(this.openDate) : new Date();
+    var constructedDateUtils = makeDateUtils(this.useUtc);
+    var pageTimestamp = constructedDateUtils.setDate(startDate, 1);
+    return {
+      /*
+       * Vue cannot observe changes to a Date Object so date must be stored as a timestamp
+       * This represents the first day of the current viewing month
+       * {Number}
+       */
+      pageTimestamp: pageTimestamp,
+
+      /*
+       * Selected Date
+       * {Date}
+       */
+      selectedDate: null,
+
+      /*
+       * Flags to show calendar views
+       * {Boolean}
+       */
+      showDayView: false,
+      showMonthView: false,
+      showYearView: false,
+
+      /*
+       * Positioning
+       */
+      calendarHeight: 0,
+      resetTypedDate: new Date(),
+      utils: constructedDateUtils
+    };
+  },
+  watch: {
+    value: function value(_value) {
+      this.setValue(_value);
+    },
+    openDate: function openDate() {
+      this.setPageDate();
+    },
+    initialView: function initialView() {
+      this.setInitialView();
+    }
+  },
+  computed: {
+    computedInitialView: function computedInitialView() {
+      if (!this.initialView) {
+        return this.minimumView;
+      }
+
+      return this.initialView;
+    },
+    pageDate: function pageDate() {
+      return new Date(this.pageTimestamp);
+    },
+    translation: function translation() {
+      return this.language;
+    },
+    calendarStyle: function calendarStyle() {
+      return {
+        position: this.isInline ? 'static' : undefined
+      };
+    },
+    isOpen: function isOpen() {
+      return this.showDayView || this.showMonthView || this.showYearView;
+    },
+    isInline: function isInline() {
+      return !!this.inline;
+    },
+    isRtl: function isRtl() {
+      return this.translation.rtl === true;
+    }
+  },
+  methods: {
+    /**
+     * Called in the event that the user navigates to date pages and
+     * closes the picker without selecting a date.
+     */
+    resetDefaultPageDate: function resetDefaultPageDate() {
+      if (this.selectedDate === null) {
+        this.setPageDate();
+        return;
+      }
+
+      this.setPageDate(this.selectedDate);
+    },
+
+    /**
+     * Effectively a toggle to show/hide the calendar
+     * @return {mixed}
+     */
+    showCalendar: function showCalendar() {
+      if (this.disabled || this.isInline) {
+        return false;
+      }
+
+      if (this.isOpen) {
+        return this.close(true);
+      }
+
+      this.setInitialView();
+    },
+
+    /**
+     * Sets the initial picker page view: day, month or year
+     */
+    setInitialView: function setInitialView() {
+      var initialView = this.computedInitialView;
+
+      if (!this.allowedToShowView(initialView)) {
+        throw new Error("initialView '".concat(this.initialView, "' cannot be rendered based on minimum '").concat(this.minimumView, "' and maximum '").concat(this.maximumView, "'"));
+      }
+
+      switch (initialView) {
+        case 'year':
+          this.showYearCalendar();
+          break;
+
+        case 'month':
+          this.showMonthCalendar();
+          break;
+
+        default:
+          this.showDayCalendar();
+          break;
+      }
+    },
+
+    /**
+     * Are we allowed to show a specific picker view?
+     * @param {String} view
+     * @return {Boolean}
+     */
+    allowedToShowView: function allowedToShowView(view) {
+      var views = ['day', 'month', 'year'];
+      var minimumViewIndex = views.indexOf(this.minimumView);
+      var maximumViewIndex = views.indexOf(this.maximumView);
+      var viewIndex = views.indexOf(view);
+      return viewIndex >= minimumViewIndex && viewIndex <= maximumViewIndex;
+    },
+
+    /**
+     * Show the day picker
+     * @return {Boolean}
+     */
+    showDayCalendar: function showDayCalendar() {
+      if (!this.allowedToShowView('day')) {
+        return false;
+      }
+
+      this.close();
+      this.showDayView = true;
+      return true;
+    },
+
+    /**
+     * Show the month picker
+     * @return {Boolean}
+     */
+    showMonthCalendar: function showMonthCalendar() {
+      if (!this.allowedToShowView('month')) {
+        return false;
+      }
+
+      this.close();
+      this.showMonthView = true;
+      return true;
+    },
+
+    /**
+     * Show the year picker
+     * @return {Boolean}
+     */
+    showYearCalendar: function showYearCalendar() {
+      if (!this.allowedToShowView('year')) {
+        return false;
+      }
+
+      this.close();
+      this.showYearView = true;
+      return true;
+    },
+
+    /**
+     * Set the selected date
+     * @param {Number} timestamp
+     */
+    setDate: function setDate(timestamp) {
+      var date = new Date(timestamp);
+      this.selectedDate = date;
+      this.setPageDate(date);
+      this.$emit('selected', date);
+      this.$emit('input', date);
+    },
+
+    /**
+     * Clear the selected date
+     */
+    clearDate: function clearDate() {
+      this.selectedDate = null;
+      this.setPageDate();
+      this.$emit('selected', null);
+      this.$emit('input', null);
+      this.$emit('cleared');
+    },
+
+    /**
+     * @param {Object} date
+     */
+    selectDate: function selectDate(date) {
+      this.setDate(date.timestamp);
+
+      if (!this.isInline) {
+        this.close(true);
+      }
+
+      this.resetTypedDate = new Date();
+    },
+
+    /**
+     * @param {Object} date
+     */
+    selectDisabledDate: function selectDisabledDate(date) {
+      this.$emit('selectedDisabled', date);
+    },
+
+    /**
+     * @param {Object} month
+     */
+    selectMonth: function selectMonth(month) {
+      var date = new Date(month.timestamp);
+
+      if (this.allowedToShowView('day')) {
+        this.setPageDate(date);
+        this.$emit('changedMonth', month);
+        this.showDayCalendar();
+      } else {
+        this.selectDate(month);
+      }
+    },
+
+    /**
+     * @param {Object} year
+     */
+    selectYear: function selectYear(year) {
+      var date = new Date(year.timestamp);
+
+      if (this.allowedToShowView('month')) {
+        this.setPageDate(date);
+        this.$emit('changedYear', year);
+        this.showMonthCalendar();
+      } else {
+        this.selectDate(year);
+      }
+    },
+
+    /**
+     * Set the datepicker value
+     * @param {Date|String|Number|null} date
+     */
+    setValue: function setValue(date) {
+      if (typeof date === 'string' || typeof date === 'number') {
+        var parsed = new Date(date);
+        date = isNaN(parsed.valueOf()) ? null : parsed;
+      }
+
+      if (!date) {
+        this.setPageDate();
+        this.selectedDate = null;
+        return;
+      }
+
+      this.selectedDate = date;
+      this.setPageDate(date);
+    },
+
+    /**
+     * Sets the date that the calendar should open on
+     */
+    setPageDate: function setPageDate(date) {
+      if (!date) {
+        if (this.openDate) {
+          date = new Date(this.openDate);
+        } else {
+          date = new Date();
+        }
+      }
+
+      this.pageTimestamp = this.utils.setDate(new Date(date), 1);
+    },
+
+    /**
+     * Handles a month change from the day picker
+     */
+    handleChangedMonthFromDayPicker: function handleChangedMonthFromDayPicker(date) {
+      this.setPageDate(date);
+      this.$emit('changedMonth', date);
+    },
+
+    /**
+     * Set the date from a typedDate event
+     */
+    setTypedDate: function setTypedDate(date) {
+      this.setDate(date.getTime());
+    },
+
+    /**
+     * Close all calendar layers
+     * @param {Boolean} emitEvent - emit close event
+     */
+    close: function close(emitEvent) {
+      this.showDayView = this.showMonthView = this.showYearView = false;
+
+      if (!this.isInline) {
+        if (emitEvent) {
+          this.$emit('closed');
+        }
+
+        document.removeEventListener('click', this.clickOutside, false);
+      }
+    },
+
+    /**
+     * Initiate the component
+     */
+    init: function init() {
+      if (this.value) {
+        this.setValue(this.value);
+      }
+
+      if (this.isInline) {
+        this.setInitialView();
+      }
+    }
+  },
+  mounted: function mounted() {
+    this.init();
+  }
+} // eslint-disable-next-line
+;
+
+var isOldIE = typeof navigator !== 'undefined' && /msie [6-9]\\b/.test(navigator.userAgent.toLowerCase());
+function createInjector(context) {
+  return function (id, style) {
+    return addStyle(id, style);
+  };
+}
+var HEAD = document.head || document.getElementsByTagName('head')[0];
+var styles = {};
+
+function addStyle(id, css) {
+  var group = isOldIE ? css.media || 'default' : id;
+  var style = styles[group] || (styles[group] = {
+    ids: new Set(),
+    styles: []
+  });
+
+  if (!style.ids.has(id)) {
+    style.ids.add(id);
+    var code = css.source;
+
+    if (css.map) {
+      // https://developer.chrome.com/devtools/docs/javascript-debugging
+      // this makes source maps inside style tags work properly in Chrome
+      code += '\n/*# sourceURL=' + css.map.sources[0] + ' */'; // http://stackoverflow.com/a/26603875
+
+      code += '\n/*# sourceMappingURL=data:application/json;base64,' + btoa(unescape(encodeURIComponent(JSON.stringify(css.map)))) + ' */';
+    }
+
+    if (!style.element) {
+      style.element = document.createElement('style');
+      style.element.type = 'text/css';
+      if (css.media) style.element.setAttribute('media', css.media);
+      HEAD.appendChild(style.element);
+    }
+
+    if ('styleSheet' in style.element) {
+      style.styles.push(code);
+      style.element.styleSheet.cssText = style.styles.filter(Boolean).join('\n');
+    } else {
+      var index = style.ids.size - 1;
+      var textNode = document.createTextNode(code);
+      var nodes = style.element.childNodes;
+      if (nodes[index]) style.element.removeChild(nodes[index]);
+      if (nodes.length) style.element.insertBefore(textNode, nodes[index]);else style.element.appendChild(textNode);
+    }
+  }
+}
+
+var browser = createInjector;
+
+/* script */
+const __vue_script__$4 = script$4;
+
+/* template */
+var __vue_render__$4 = function() {
+  var _vm = this;
+  var _h = _vm.$createElement;
+  var _c = _vm._self._c || _h;
+  return _c(
+    "div",
+    {
+      staticClass: "vdp-datepicker",
+      class: [_vm.wrapperClass, _vm.isRtl ? "rtl" : ""]
+    },
+    [
+      _c(
+        "date-input",
+        {
+          attrs: {
+            selectedDate: _vm.selectedDate,
+            resetTypedDate: _vm.resetTypedDate,
+            format: _vm.format,
+            translation: _vm.translation,
+            inline: _vm.inline,
+            id: _vm.id,
+            name: _vm.name,
+            refName: _vm.refName,
+            openDate: _vm.openDate,
+            placeholder: _vm.placeholder,
+            inputClass: _vm.inputClass,
+            typeable: _vm.typeable,
+            clearButton: _vm.clearButton,
+            clearButtonIcon: _vm.clearButtonIcon,
+            calendarButton: _vm.calendarButton,
+            calendarButtonIcon: _vm.calendarButtonIcon,
+            calendarButtonIconContent: _vm.calendarButtonIconContent,
+            disabled: _vm.disabled,
+            required: _vm.required,
+            bootstrapStyling: _vm.bootstrapStyling,
+            "use-utc": _vm.useUtc
+          },
+          on: {
+            showCalendar: _vm.showCalendar,
+            closeCalendar: _vm.close,
+            typedDate: _vm.setTypedDate,
+            clearDate: _vm.clearDate
+          }
+        },
+        [_vm._t("afterDateInput", null, { slot: "afterDateInput" })],
+        2
+      ),
+      _vm._v(" "),
+      _vm.allowedToShowView("day")
+        ? _c(
+            "picker-day",
+            {
+              attrs: {
+                pageDate: _vm.pageDate,
+                selectedDate: _vm.selectedDate,
+                showDayView: _vm.showDayView,
+                fullMonthName: _vm.fullMonthName,
+                allowedToShowView: _vm.allowedToShowView,
+                disabledDates: _vm.disabledDates,
+                highlighted: _vm.highlighted,
+                calendarClass: _vm.calendarClass,
+                calendarStyle: _vm.calendarStyle,
+                translation: _vm.translation,
+                pageTimestamp: _vm.pageTimestamp,
+                isRtl: _vm.isRtl,
+                mondayFirst: _vm.mondayFirst,
+                dayCellContent: _vm.dayCellContent,
+                "use-utc": _vm.useUtc
+              },
+              on: {
+                changedMonth: _vm.handleChangedMonthFromDayPicker,
+                selectDate: _vm.selectDate,
+                showMonthCalendar: _vm.showMonthCalendar,
+                selectedDisabled: _vm.selectDisabledDate
+              }
+            },
+            [
+              _vm._t("beforeCalendarHeader", null, {
+                slot: "beforeCalendarHeader"
+              })
+            ],
+            2
+          )
+        : _vm._e(),
+      _vm._v(" "),
+      _vm.allowedToShowView("month")
+        ? _c(
+            "picker-month",
+            {
+              attrs: {
+                pageDate: _vm.pageDate,
+                selectedDate: _vm.selectedDate,
+                showMonthView: _vm.showMonthView,
+                allowedToShowView: _vm.allowedToShowView,
+                disabledDates: _vm.disabledDates,
+                calendarClass: _vm.calendarClass,
+                calendarStyle: _vm.calendarStyle,
+                translation: _vm.translation,
+                isRtl: _vm.isRtl,
+                "use-utc": _vm.useUtc
+              },
+              on: {
+                selectMonth: _vm.selectMonth,
+                showYearCalendar: _vm.showYearCalendar,
+                changedYear: _vm.setPageDate
+              }
+            },
+            [
+              _vm._t("beforeCalendarHeader", null, {
+                slot: "beforeCalendarHeader"
+              })
+            ],
+            2
+          )
+        : _vm._e(),
+      _vm._v(" "),
+      _vm.allowedToShowView("year")
+        ? _c(
+            "picker-year",
+            {
+              attrs: {
+                pageDate: _vm.pageDate,
+                selectedDate: _vm.selectedDate,
+                showYearView: _vm.showYearView,
+                allowedToShowView: _vm.allowedToShowView,
+                disabledDates: _vm.disabledDates,
+                calendarClass: _vm.calendarClass,
+                calendarStyle: _vm.calendarStyle,
+                translation: _vm.translation,
+                isRtl: _vm.isRtl,
+                "use-utc": _vm.useUtc
+              },
+              on: { selectYear: _vm.selectYear, changedDecade: _vm.setPageDate }
+            },
+            [
+              _vm._t("beforeCalendarHeader", null, {
+                slot: "beforeCalendarHeader"
+              })
+            ],
+            2
+          )
+        : _vm._e()
+    ],
+    1
+  )
+};
+var __vue_staticRenderFns__$4 = [];
+__vue_render__$4._withStripped = true;
+
+  /* style */
+  const __vue_inject_styles__$4 = function (inject) {
+    if (!inject) return
+    inject("data-v-64ca2bb5_0", { source: ".rtl {\n  direction: rtl;\n}\n.vdp-datepicker {\n  position: relative;\n  text-align: left;\n}\n.vdp-datepicker * {\n  box-sizing: border-box;\n}\n.vdp-datepicker__calendar {\n  position: absolute;\n  z-index: 100;\n  background: #fff;\n  width: 300px;\n  border: 1px solid #ccc;\n}\n.vdp-datepicker__calendar header {\n  display: block;\n  line-height: 40px;\n}\n.vdp-datepicker__calendar header span {\n  display: inline-block;\n  text-align: center;\n  width: 71.42857142857143%;\n  float: left;\n}\n.vdp-datepicker__calendar header .prev,\n.vdp-datepicker__calendar header .next {\n  width: 14.285714285714286%;\n  float: left;\n  text-indent: -10000px;\n  position: relative;\n}\n.vdp-datepicker__calendar header .prev:after,\n.vdp-datepicker__calendar header .next:after {\n  content: '';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translateX(-50%) translateY(-50%);\n  border: 6px solid transparent;\n}\n.vdp-datepicker__calendar header .prev:after {\n  border-right: 10px solid #000;\n  margin-left: -5px;\n}\n.vdp-datepicker__calendar header .prev.disabled:after {\n  border-right: 10px solid #ddd;\n}\n.vdp-datepicker__calendar header .next:after {\n  border-left: 10px solid #000;\n  margin-left: 5px;\n}\n.vdp-datepicker__calendar header .next.disabled:after {\n  border-left: 10px solid #ddd;\n}\n.vdp-datepicker__calendar header .prev:not(.disabled),\n.vdp-datepicker__calendar header .next:not(.disabled),\n.vdp-datepicker__calendar header .up:not(.disabled) {\n  cursor: pointer;\n}\n.vdp-datepicker__calendar header .prev:not(.disabled):hover,\n.vdp-datepicker__calendar header .next:not(.disabled):hover,\n.vdp-datepicker__calendar header .up:not(.disabled):hover {\n  background: #eee;\n}\n.vdp-datepicker__calendar .disabled {\n  color: #ddd;\n  cursor: default;\n}\n.vdp-datepicker__calendar .flex-rtl {\n  display: flex;\n  width: inherit;\n  flex-wrap: wrap;\n}\n.vdp-datepicker__calendar .cell {\n  display: inline-block;\n  padding: 0 5px;\n  width: 14.285714285714286%;\n  height: 40px;\n  line-height: 40px;\n  text-align: center;\n  vertical-align: middle;\n  border: 1px solid transparent;\n}\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).day,\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).month,\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).year {\n  cursor: pointer;\n}\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).day:hover,\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).month:hover,\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).year:hover {\n  border: 1px solid #4bd;\n}\n.vdp-datepicker__calendar .cell.selected {\n  background: #4bd;\n}\n.vdp-datepicker__calendar .cell.selected:hover {\n  background: #4bd;\n}\n.vdp-datepicker__calendar .cell.selected.highlighted {\n  background: #4bd;\n}\n.vdp-datepicker__calendar .cell.highlighted {\n  background: #cae5ed;\n}\n.vdp-datepicker__calendar .cell.highlighted.disabled {\n  color: #a3a3a3;\n}\n.vdp-datepicker__calendar .cell.grey {\n  color: #888;\n}\n.vdp-datepicker__calendar .cell.grey:hover {\n  background: inherit;\n}\n.vdp-datepicker__calendar .cell.day-header {\n  font-size: 75%;\n  white-space: nowrap;\n  cursor: inherit;\n}\n.vdp-datepicker__calendar .cell.day-header:hover {\n  background: inherit;\n}\n.vdp-datepicker__calendar .month,\n.vdp-datepicker__calendar .year {\n  width: 33.333%;\n}\n.vdp-datepicker__clear-button,\n.vdp-datepicker__calendar-button {\n  cursor: pointer;\n  font-style: normal;\n}\n.vdp-datepicker__clear-button.disabled,\n.vdp-datepicker__calendar-button.disabled {\n  color: #999;\n  cursor: default;\n}\n", map: {"version":3,"sources":["Datepicker.vue"],"names":[],"mappings":"AAAA;EACE,cAAc;AAChB;AACA;EACE,kBAAkB;EAClB,gBAAgB;AAClB;AACA;EACE,sBAAsB;AACxB;AACA;EACE,kBAAkB;EAClB,YAAY;EACZ,gBAAgB;EAChB,YAAY;EACZ,sBAAsB;AACxB;AACA;EACE,cAAc;EACd,iBAAiB;AACnB;AACA;EACE,qBAAqB;EACrB,kBAAkB;EAClB,yBAAyB;EACzB,WAAW;AACb;AACA;;EAEE,0BAA0B;EAC1B,WAAW;EACX,qBAAqB;EACrB,kBAAkB;AACpB;AACA;;EAEE,WAAW;EACX,kBAAkB;EAClB,SAAS;EACT,QAAQ;EACR,4CAA4C;EAC5C,6BAA6B;AAC/B;AACA;EACE,6BAA6B;EAC7B,iBAAiB;AACnB;AACA;EACE,6BAA6B;AAC/B;AACA;EACE,4BAA4B;EAC5B,gBAAgB;AAClB;AACA;EACE,4BAA4B;AAC9B;AACA;;;EAGE,eAAe;AACjB;AACA;;;EAGE,gBAAgB;AAClB;AACA;EACE,WAAW;EACX,eAAe;AACjB;AACA;EACE,aAAa;EACb,cAAc;EACd,eAAe;AACjB;AACA;EACE,qBAAqB;EACrB,cAAc;EACd,0BAA0B;EAC1B,YAAY;EACZ,iBAAiB;EACjB,kBAAkB;EAClB,sBAAsB;EACtB,6BAA6B;AAC/B;AACA;;;EAGE,eAAe;AACjB;AACA;;;EAGE,sBAAsB;AACxB;AACA;EACE,gBAAgB;AAClB;AACA;EACE,gBAAgB;AAClB;AACA;EACE,gBAAgB;AAClB;AACA;EACE,mBAAmB;AACrB;AACA;EACE,cAAc;AAChB;AACA;EACE,WAAW;AACb;AACA;EACE,mBAAmB;AACrB;AACA;EACE,cAAc;EACd,mBAAmB;EACnB,eAAe;AACjB;AACA;EACE,mBAAmB;AACrB;AACA;;EAEE,cAAc;AAChB;AACA;;EAEE,eAAe;EACf,kBAAkB;AACpB;AACA;;EAEE,WAAW;EACX,eAAe;AACjB","file":"Datepicker.vue","sourcesContent":[".rtl {\n  direction: rtl;\n}\n.vdp-datepicker {\n  position: relative;\n  text-align: left;\n}\n.vdp-datepicker * {\n  box-sizing: border-box;\n}\n.vdp-datepicker__calendar {\n  position: absolute;\n  z-index: 100;\n  background: #fff;\n  width: 300px;\n  border: 1px solid #ccc;\n}\n.vdp-datepicker__calendar header {\n  display: block;\n  line-height: 40px;\n}\n.vdp-datepicker__calendar header span {\n  display: inline-block;\n  text-align: center;\n  width: 71.42857142857143%;\n  float: left;\n}\n.vdp-datepicker__calendar header .prev,\n.vdp-datepicker__calendar header .next {\n  width: 14.285714285714286%;\n  float: left;\n  text-indent: -10000px;\n  position: relative;\n}\n.vdp-datepicker__calendar header .prev:after,\n.vdp-datepicker__calendar header .next:after {\n  content: '';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translateX(-50%) translateY(-50%);\n  border: 6px solid transparent;\n}\n.vdp-datepicker__calendar header .prev:after {\n  border-right: 10px solid #000;\n  margin-left: -5px;\n}\n.vdp-datepicker__calendar header .prev.disabled:after {\n  border-right: 10px solid #ddd;\n}\n.vdp-datepicker__calendar header .next:after {\n  border-left: 10px solid #000;\n  margin-left: 5px;\n}\n.vdp-datepicker__calendar header .next.disabled:after {\n  border-left: 10px solid #ddd;\n}\n.vdp-datepicker__calendar header .prev:not(.disabled),\n.vdp-datepicker__calendar header .next:not(.disabled),\n.vdp-datepicker__calendar header .up:not(.disabled) {\n  cursor: pointer;\n}\n.vdp-datepicker__calendar header .prev:not(.disabled):hover,\n.vdp-datepicker__calendar header .next:not(.disabled):hover,\n.vdp-datepicker__calendar header .up:not(.disabled):hover {\n  background: #eee;\n}\n.vdp-datepicker__calendar .disabled {\n  color: #ddd;\n  cursor: default;\n}\n.vdp-datepicker__calendar .flex-rtl {\n  display: flex;\n  width: inherit;\n  flex-wrap: wrap;\n}\n.vdp-datepicker__calendar .cell {\n  display: inline-block;\n  padding: 0 5px;\n  width: 14.285714285714286%;\n  height: 40px;\n  line-height: 40px;\n  text-align: center;\n  vertical-align: middle;\n  border: 1px solid transparent;\n}\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).day,\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).month,\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).year {\n  cursor: pointer;\n}\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).day:hover,\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).month:hover,\n.vdp-datepicker__calendar .cell:not(.blank):not(.disabled).year:hover {\n  border: 1px solid #4bd;\n}\n.vdp-datepicker__calendar .cell.selected {\n  background: #4bd;\n}\n.vdp-datepicker__calendar .cell.selected:hover {\n  background: #4bd;\n}\n.vdp-datepicker__calendar .cell.selected.highlighted {\n  background: #4bd;\n}\n.vdp-datepicker__calendar .cell.highlighted {\n  background: #cae5ed;\n}\n.vdp-datepicker__calendar .cell.highlighted.disabled {\n  color: #a3a3a3;\n}\n.vdp-datepicker__calendar .cell.grey {\n  color: #888;\n}\n.vdp-datepicker__calendar .cell.grey:hover {\n  background: inherit;\n}\n.vdp-datepicker__calendar .cell.day-header {\n  font-size: 75%;\n  white-space: nowrap;\n  cursor: inherit;\n}\n.vdp-datepicker__calendar .cell.day-header:hover {\n  background: inherit;\n}\n.vdp-datepicker__calendar .month,\n.vdp-datepicker__calendar .year {\n  width: 33.333%;\n}\n.vdp-datepicker__clear-button,\n.vdp-datepicker__calendar-button {\n  cursor: pointer;\n  font-style: normal;\n}\n.vdp-datepicker__clear-button.disabled,\n.vdp-datepicker__calendar-button.disabled {\n  color: #999;\n  cursor: default;\n}\n"]}, media: undefined });
+
+  };
+  /* scoped */
+  const __vue_scope_id__$4 = undefined;
+  /* module identifier */
+  const __vue_module_identifier__$4 = undefined;
+  /* functional template */
+  const __vue_is_functional_template__$4 = false;
+  /* style inject SSR */
+  
+
+  
+  var Datepicker = normalizeComponent_1(
+    { render: __vue_render__$4, staticRenderFns: __vue_staticRenderFns__$4 },
+    __vue_inject_styles__$4,
+    __vue_script__$4,
+    __vue_scope_id__$4,
+    __vue_is_functional_template__$4,
+    __vue_module_identifier__$4,
+    browser,
+    undefined
+  );
+
+/* harmony default export */ __webpack_exports__["default"] = (Datepicker);
+
+
+/***/ }),
+
 /***/ "./node_modules/webpack/buildin/global.js":
 /*!***********************************!*\
   !*** (webpack)/buildin/global.js ***!
@@ -40590,7 +43185,9 @@ var config = {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _Admin_vue_vue_type_template_id_58b78718___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Admin.vue?vue&type=template&id=58b78718& */ "./resources/js/components/Admin.vue?vue&type=template&id=58b78718&");
 /* harmony import */ var _Admin_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Admin.vue?vue&type=script&lang=js& */ "./resources/js/components/Admin.vue?vue&type=script&lang=js&");
-/* empty/unused harmony star reexport *//* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+/* empty/unused harmony star reexport *//* harmony import */ var _Admin_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Admin.vue?vue&type=style&index=0&lang=css& */ "./resources/js/components/Admin.vue?vue&type=style&index=0&lang=css&");
+/* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+
 
 
 
@@ -40598,7 +43195,7 @@ __webpack_require__.r(__webpack_exports__);
 
 /* normalize component */
 
-var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__["default"])(
+var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_3__["default"])(
   _Admin_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
   _Admin_vue_vue_type_template_id_58b78718___WEBPACK_IMPORTED_MODULE_0__["render"],
   _Admin_vue_vue_type_template_id_58b78718___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
@@ -40627,6 +43224,22 @@ component.options.__file = "resources/js/components/Admin.vue"
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Admin_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/babel-loader/lib??ref--4-0!../../../node_modules/vue-loader/lib??vue-loader-options!./Admin.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Admin.vue?vue&type=script&lang=js&");
 /* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Admin_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./resources/js/components/Admin.vue?vue&type=style&index=0&lang=css&":
+/*!****************************************************************************!*\
+  !*** ./resources/js/components/Admin.vue?vue&type=style&index=0&lang=css& ***!
+  \****************************************************************************/
+/*! no static exports found */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_style_loader_index_js_node_modules_css_loader_index_js_ref_6_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_vue_loader_lib_index_js_vue_loader_options_Admin_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/style-loader!../../../node_modules/css-loader??ref--6-1!../../../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../../../node_modules/postcss-loader/src??ref--6-2!../../../node_modules/vue-loader/lib??vue-loader-options!./Admin.vue?vue&type=style&index=0&lang=css& */ "./node_modules/style-loader/index.js!./node_modules/css-loader/index.js?!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Admin.vue?vue&type=style&index=0&lang=css&");
+/* harmony import */ var _node_modules_style_loader_index_js_node_modules_css_loader_index_js_ref_6_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_vue_loader_lib_index_js_vue_loader_options_Admin_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_index_js_node_modules_css_loader_index_js_ref_6_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_vue_loader_lib_index_js_vue_loader_options_Admin_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__);
+/* harmony reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in _node_modules_style_loader_index_js_node_modules_css_loader_index_js_ref_6_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_vue_loader_lib_index_js_vue_loader_options_Admin_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__) if(__WEBPACK_IMPORT_KEY__ !== 'default') (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return _node_modules_style_loader_index_js_node_modules_css_loader_index_js_ref_6_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_vue_loader_lib_index_js_vue_loader_options_Admin_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__[key]; }) }(__WEBPACK_IMPORT_KEY__));
+ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_style_loader_index_js_node_modules_css_loader_index_js_ref_6_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_vue_loader_lib_index_js_vue_loader_options_Admin_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default.a); 
 
 /***/ }),
 

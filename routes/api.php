@@ -33,3 +33,5 @@ Route::get('property/{id}', 'PropertyController@show');
 Route::resource('/properties', 'PropertyController', [
     'except' => ['edit', 'show', 'store']
   ]);
+
+Route::post('/reservation/create', 'ReservationController@create');

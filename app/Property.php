@@ -14,6 +14,10 @@ class Property extends Model
     {
         return $this->belongsTo('App\User');
     }
+    public function location()
+    {
+        return $this->belongsTo('App\Location');
+    }
 
     public $timestamps = false;
 }

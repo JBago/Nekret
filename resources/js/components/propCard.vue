@@ -18,7 +18,7 @@
                     {{item.title}}
                     <br><br>
                     Location:
-                    Sarajevo
+                    {{item.location}}
                   </h1>
                 </div>
                 <div class="level-item"></div>
