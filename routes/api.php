@@ -30,6 +30,8 @@ Route::group(['middleware' => 'auth:api'], function(){
 
 Route::post('/properties/create', 'PropertyController@create');
 Route::get('property/{id}', 'PropertyController@show');
+Route::get('myProperties', 'PropertyController@propertiesOfUser');
+Route::put('properties/update/{id}', 'PropertyController@update');
 Route::resource('/properties', 'PropertyController', [
     'except' => ['edit', 'show', 'store']
   ]);

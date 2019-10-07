@@ -2,7 +2,7 @@
     <div class="container">
       <div class="box" style="padding: 1rem; margin-top: 100px; margin-bottom: 100px">
         <div v-bind:key="item.id" v-for="item in list">
-          <prop-card :item="item" :route="'/View/'+item.id" ></prop-card>
+          <prop-card :item="item" :route="'/Modify/' + item.id"></prop-card>
         </div>
         <span v-show="list==false">{{emptyMessage}}</span>
       </div>
@@ -15,7 +15,7 @@ export default {
   data: function(){
     return {    
       list: [],
-      emptyMessage: 'No properties found.'   
+      emptyMessage: 'You have no properties.'   
     }
   },
   created: function(){
@@ -24,7 +24,7 @@ export default {
   components: { propCard },
   methods: {
       fetchProps(){
-          this.axios.get('/api/properties').then((response) => {
+          this.axios.get('/api/myProperties').then((response) => {
               this.list= response.data;
           })
       }

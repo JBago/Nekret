@@ -2,7 +2,7 @@
 <div>
     <h3 class="title is-size-5">User List</h3>
     <div class="alert alert-danger" v-if="has_error">
-        <p>Error, Unable to get User list.</p>
+        <p>Error, Unable to get list of users.</p>
     </div>
 
     <table class="table">

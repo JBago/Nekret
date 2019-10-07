@@ -9,6 +9,8 @@ import AdminDashboard from './components/Admin'
 import CreateProp from './components/CreateProp'
 import Browse from './components/Browse'
 import View from './components/View'
+import MyProperties from './components/MyProperties'
+import ModifyProp from './components/ModifyProp'
 
 // Routes
 const routes = [
@@ -49,6 +51,22 @@ const routes = [
     path: '/create',
     name: 'create',
     component: CreateProp,
+    meta: {
+      auth: true
+    }
+  },
+  {
+    path: '/properties',
+    name: 'myproperties',
+    component: MyProperties,
+    meta: {
+      auth: true
+    }
+  },
+  {
+    path: '/modify/:id',
+    name: 'modify',
+    component: ModifyProp,
     meta: {
       auth: true
     }

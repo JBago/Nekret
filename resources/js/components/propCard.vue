@@ -1,9 +1,8 @@
 <template>
     <div class="card" id="itemCard">
-        <router-link :to="'/View/'+item.id"><div  style="z-index: 10;" class="is-overlay"></div></router-link>
+        <router-link :to="route"><div  style="z-index: 10;" class="is-overlay"></div></router-link>
           <div class="card-content" style="padding: 1rem">
             <nav class="level is-mobile">
-              <!-- Left side -->
               <div class="level-left">
                 <div class="level-item">
                   <div  class="card-image is-128x128" >
@@ -47,7 +46,8 @@ export default {
     methods: {
     },
     props:{
-      item: Object
+      item: Object,
+      route: String
   }
 }
 </script>

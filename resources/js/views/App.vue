@@ -10,6 +10,9 @@
           <router-link  v-if="$auth.check()" to="/create" class="navbar-item nav-item-custom">
             <span class="is-family-primary">Add Property</span>
           </router-link>
+          <router-link  v-if="$auth.check()" to="/properties" class="navbar-item nav-item-custom">
+            <span class="is-family-primary">My Properties</span>
+          </router-link>
            <router-link to="/browse" class="navbar-item nav-item-custom">
             <span class="is-family-primary">Browse</span>
           </router-link>
