@@ -103,7 +103,7 @@
         </div>
 
         <footer class="card-footer">
-          <button @click="onSubmit" class="button is-danger card-footer-item" style="height: auto; border-radius: 0; padding: 0.6rem">
+          <button @click="del" class="button is-danger card-footer-item" style="height: auto; border-radius: 0; padding: 0.6rem">
             <span class="has-text-weight-medium" style="font-size: 1.15rem">Delete</span>
           </button>
           <button @click="onSubmit" class="button is-info card-footer-item" style="height: auto; border-radius: 0; padding: 0.6rem">
@@ -172,6 +172,13 @@
             app.has_error = true;
           })
       },
+      del(){
+          this.axios.delete('/api/properties/' + this.$route.params.id).then((response) => {
+              console.log(response);
+              app.success = true;
+              this.$router.push({name: 'myproperties'});
+            })
+        },
        fetchData(){
           this.axios.get('/api/property/' + this.$route.params.id).then((response) => {
               this.selectedObject= response.data[0];

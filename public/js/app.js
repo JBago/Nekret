@@ -3832,16 +3832,28 @@ __webpack_require__.r(__webpack_exports__);
         app.has_error = true;
       });
     },
-    fetchData: function fetchData() {
+    del: function del() {
       var _this = this;
 
+      this.axios["delete"]('/api/properties/' + this.$route.params.id).then(function (response) {
+        console.log(response);
+        app.success = true;
+
+        _this.$router.push({
+          name: 'myproperties'
+        });
+      });
+    },
+    fetchData: function fetchData() {
+      var _this2 = this;
+
       this.axios.get('/api/property/' + this.$route.params.id).then(function (response) {
-        _this.selectedObject = response.data[0];
-        _this.selectedObject.cover = '/images/' + response.data[0].filename + '/' + response.data[0].cover;
+        _this2.selectedObject = response.data[0];
+        _this2.selectedObject.cover = '/images/' + response.data[0].filename + '/' + response.data[0].cover;
         var i = 0;
 
         for (i; i < response.data[1].length; i++) {
-          _this.layout.push({
+          _this2.layout.push({
             "x": Math.floor(i / 4 % 1 * 4),
             "y": Math.floor(i / 4),
             "w": 1,
@@ -3853,7 +3865,7 @@ __webpack_require__.r(__webpack_exports__);
 
         ;
 
-        _this.layout.push({
+        _this2.layout.push({
           "x": Math.floor(i / 4 % 1 * 4),
           "y": Math.floor(i / 4),
           "w": 1,
@@ -3862,11 +3874,11 @@ __webpack_require__.r(__webpack_exports__);
           "img": null
         });
 
-        console.log(_this.selectedObject);
+        console.log(_this2.selectedObject);
       });
     },
     uploadImage: function uploadImage(i) {
-      var _this2 = this;
+      var _this3 = this;
 
       var images = event.target.files;
       var that = this;
@@ -3875,7 +3887,7 @@ __webpack_require__.r(__webpack_exports__);
 
       var _loop = function _loop(j) {
         promise.then(function () {
-          return _this2.pFileReader(images[j], num, j);
+          return _this3.pFileReader(images[j], num, j);
         });
       };
 
@@ -3889,10 +3901,10 @@ __webpack_require__.r(__webpack_exports__);
       });
     },
     pFileReader: function pFileReader(file, num, j) {
-      var _this3 = this;
+      var _this4 = this;
 
       return new Promise(function (resolve, reject) {
-        var that = _this3;
+        var that = _this4;
         var reader = new FileReader();
         reader.readAsDataURL(file);
 
@@ -4088,6 +4100,8 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _reserveModul_vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./reserveModul.vue */ "./resources/js/components/reserveModul.vue");
+//
+//
 //
 //
 //
@@ -25504,7 +25518,7 @@ var render = function() {
                     "border-radius": "0",
                     padding: "0.6rem"
                   },
-                  on: { click: _vm.onSubmit }
+                  on: { click: _vm.del }
                 },
                 [
                   _c(
@@ -25916,6 +25930,12 @@ var render = function() {
               _c("div", { staticClass: "has-text-left" }, [
                 _c("span", { staticClass: "is-size-6 is-family-primary" }, [
                   _c("br"),
+                  _c("br"),
+                  _vm._v(
+                    "\r\n                  Location:  " +
+                      _vm._s(_vm.selectedObject.location.name) +
+                      "\r\n                  "
+                  ),
                   _c("br"),
                   _vm._v(
                     "\r\n                  Owner:  " +

@@ -19,5 +19,10 @@ class Property extends Model
         return $this->belongsTo('App\Location');
     }
 
+    public function reservation()
+    {
+        return $this->hasMany('App\Reservation');
+    }
+
     public $timestamps = false;
 }

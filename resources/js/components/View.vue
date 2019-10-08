@@ -13,6 +13,8 @@
           <div class="has-text-left">
             <span class="is-size-6 is-family-primary">
                   <br><br>
+                  Location:  {{selectedObject.location.name}}
+                  <br>
                   Owner:  {{selectedObject.user.username}}
                   <br>
                   Phone number: {{selectedObject.user.phone_number || 'N/A'}}

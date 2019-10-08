@@ -133,13 +133,25 @@ class PropertyController extends Controller
             ], 200);
     }
 
-    public function delete( $id ) {
-		Property::find( $id )->delete();
+    public function destroy( $id ) {
 
-		return response()->json(
-                         [ 
-                            'status' => 'success',
-                            'message' => 'Property deleted successfully'
-                         ], 200);
+        $prop = Property::find( $id );
+        $images = Photo::where('folder', $prop->filename)
+            ->get();
+        $reservations = Reservation::where('property_id', $prop->id)
+        ->get();
+        foreach ($images as $image) {
+        $image->delete();
+        }
+        foreach ($reservations as $res) {
+            $res->delete();
+            }
+        File::deleteDirectory(public_path('images/').($prop->filename));
+        $prop->delete();
+        return response()->json(
+            [ 
+               'status' => 'success',
+               'message' => 'Property deleted successfully'
+            ], 200);
 	}
 }
